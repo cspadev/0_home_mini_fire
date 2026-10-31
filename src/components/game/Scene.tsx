@@ -149,7 +149,7 @@ function ToolMesh({ tool }: { tool: Tool }) {
 
 const STATION_STYLE: Record<Tool, { color: string; sign: string; sub: string; bg: string; ink: string }> = {
   water: { color: "#3fa7ff", sign: "WATER", sub: "paper · wood", bg: "#d6efff", ink: "#1d5fa8" },
-  co2: { color: "#2b2b33", sign: "CO₂", sub: "electrical", bg: "#ececf2", ink: "#2b2235" },
+  co2: { color: "#f4f4fa", sign: "CO₂", sub: "electrical", bg: "#ececf2", ink: "#2b2235" },
   blanket: { color: "#e2332f", sign: "BLANKET", sub: "cooking oil", bg: "#ffe0d6", ink: "#b0211d" },
 };
 
@@ -741,7 +741,7 @@ function Stepper() {
         if (Math.random() < 0.5 + f.intensity * 0.3)
           emit(f.x, f.y + 0.4 + f.intensity * 0.6, f.z, { count: 1, colors: [0xffb23a, 0xffe066, 0xff6a2a], speed: [0.1, 0.5], up: [1.2, 2.6], life: [0.6, 1.1], size: [0.03, 0.06], drag: 0.6 });
         if (f.intensity > 0.7 && Math.random() < 0.35)
-          emit(f.x, f.y + 1.2 + f.intensity * 0.6, f.z, { count: 1, colors: [0x5a514c, 0x6e6560, 0x4a4340], speed: [0.1, 0.4], up: [0.7, 1.3], life: [1.6, 2.6], size: [0.25, 0.4], grow: 0.5, drag: 0.4 });
+          emit(f.x, f.y + 1.2 + f.intensity * 0.6, f.z, { count: 1, colors: [0x5a514c, 0x6e6560, 0x4a4340], speed: [0.1, 0.4], up: [0.7, 1.3], life: [1.6, 2.6], size: [0.12, 0.22], grow: 0.45, drag: 0.4 });
         if (f.kind === "electric" && Math.random() < 0.3)
           emit(f.x, f.y + 0.3, f.z, { count: 2, colors: [0xffffff, 0x9fe8ff], speed: [2, 4], up: [1, 3], life: [0.15, 0.3], size: [0.03, 0.05], grav: 12 });
       }
@@ -764,6 +764,9 @@ function Stepper() {
     WANT.set(p.x - f.x * 5.4, 3.0 + p.y * 0.4, p.z - f.z * 5.4);
     WANT.x = THREE.MathUtils.clamp(WANT.x, ROOM.minX + 0.4, ROOM.maxX - 0.4);
     WANT.z = THREE.MathUtils.clamp(WANT.z, ROOM.minZ + 0.4, ROOM.maxZ - 0.4);
+    // a wall squeezed the camera in: lift it so the player still fits in frame
+    const lost = 5.4 - Math.hypot(WANT.x - p.x, WANT.z - p.z);
+    if (lost > 0) WANT.y = Math.min(ROOM.height - 0.25, WANT.y + lost * 0.45);
     LOOK.set(p.x + f.x * 3, 0.9 + p.y * 0.6, p.z + f.z * 3);
     const playing = game.phase === "playing";
     if (playing && !wasPlaying.current && game.elapsed < 0.2) {
