@@ -40,7 +40,18 @@ useGLTF.preload(studentModel.url);
 
 function fitClone(src: THREE.Object3D, size: [number, number, number], skinned = false) {
   const c = skinned ? SkeletonUtils.clone(src) : src.clone(true);
-  const box = new THREE.Box3().setFromObject(c);
+  // skinned meshes report posed bounds in three; use the raw geometry bounds instead
+  const box = new THREE.Box3();
+  if (skinned) {
+    c.updateMatrixWorld(true);
+    c.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) {
+        m.geometry.computeBoundingBox();
+        box.union(m.geometry.boundingBox!.clone());
+      }
+    });
+  } else box.setFromObject(c);
   const s = box.getSize(new THREE.Vector3());
   const k = Math.min(size[0] / s.x, size[1] / s.y, size[2] / s.z);
   const ctr = box.getCenter(new THREE.Vector3());
@@ -275,7 +286,7 @@ function Room() {
       </mesh>
       <mesh rotation-x={Math.PI / 2} position={[0, H, 0]}>
         <planeGeometry args={[W, D]} />
-        <meshStandardMaterial color="#fbf3e4" roughness={1} />
+        <meshStandardMaterial color="#fbf3e4" emissive="#f3e2c4" emissiveIntensity={0.55} roughness={1} />
       </mesh>
       {[-5, 0, 5].map((x) =>
         [-4, 2].map((z) => (
@@ -750,10 +761,10 @@ function Stepper() {
     const p = game.player;
     const f = forwardOf(p.yaw);
     camera.position.sub(shakeOff.current);
-    WANT.set(p.x - f.x * 4.6, 2.55 + p.y * 0.4, p.z - f.z * 4.6);
+    WANT.set(p.x - f.x * 5.4, 3.0 + p.y * 0.4, p.z - f.z * 5.4);
     WANT.x = THREE.MathUtils.clamp(WANT.x, ROOM.minX + 0.4, ROOM.maxX - 0.4);
     WANT.z = THREE.MathUtils.clamp(WANT.z, ROOM.minZ + 0.4, ROOM.maxZ - 0.4);
-    LOOK.set(p.x + f.x * 2.2, 1.0 + p.y * 0.6, p.z + f.z * 2.2);
+    LOOK.set(p.x + f.x * 3, 0.9 + p.y * 0.6, p.z + f.z * 3);
     const playing = game.phase === "playing";
     if (playing && !wasPlaying.current && game.elapsed < 0.2) {
       camera.position.copy(WANT);

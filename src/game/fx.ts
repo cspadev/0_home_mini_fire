@@ -79,19 +79,19 @@ export function burst(kind: BurstKind, x: number, y: number, z: number) {
       emit(x, y + 0.6, z, { count: 45, colors: [0x5ec8ff, 0x9fe0ff, 0xffffff], speed: [1.5, 4], up: [2, 6], life: [0.5, 1], size: [0.08, 0.18], grav: 14 });
       break;
     case "steam":
-      emit(x, y + 0.3, z, { count: 30, colors: [0xf2f2f2, 0xd8dde3, 0xbfc6cc], speed: [0.3, 1.2], up: [1, 2.5], life: [1, 1.8], size: [0.25, 0.45], grow: 0.8, drag: 2 });
+      emit(x, y + 0.3, z, { count: 30, colors: [0xf2f2f2, 0xd8dde3, 0xbfc6cc], speed: [0.3, 1.2], up: [1, 2.5], life: [1, 1.8], size: [0.2, 0.35], grow: 0.5, drag: 2 });
       break;
     case "sparks":
       emit(x, y + 0.5, z, { count: 80, colors: [0xffffff, 0xfff27a, 0x8fe9ff], speed: [3, 9], up: [1, 7], life: [0.3, 0.8], size: [0.04, 0.1], grav: 16, drag: 1 });
-      emit(x, y + 0.5, z, { count: 12, colors: [0x9fe8ff, 0xffffff], speed: [0.2, 1], up: [0, 1], life: [0.15, 0.3], size: [0.6, 1.0], grow: 3 });
+      emit(x, y + 0.5, z, { count: 8, colors: [0x9fe8ff, 0xffffff], speed: [0.2, 1], up: [0, 1], life: [0.12, 0.25], size: [0.3, 0.5], grow: 2 });
       break;
     case "fireball":
-      emit(x, y + 0.4, z, { count: 90, colors: [0xff4d1a, 0xff8a1f, 0xffc93c, 0xfff1a8], speed: [1, 5], up: [3, 9], life: [0.6, 1.3], size: [0.3, 0.7], grow: 1.6, drag: 2.2, spread: 0.6 });
-      emit(x, y + 1.5, z, { count: 14, colors: [0xffe17a, 0xffffff], speed: [0, 1], up: [2, 4], life: [0.35, 0.6], size: [1.2, 1.8], grow: 4 });
-      emit(x, y + 1, z, { count: 40, colors: [0x5a514c, 0x3d3733, 0x7a706a], speed: [0.5, 2], up: [2, 4], life: [1.4, 2.4], size: [0.4, 0.7], grow: 1.2, drag: 1.5 });
+      emit(x, y + 0.4, z, { count: 90, colors: [0xff4d1a, 0xff8a1f, 0xffc93c, 0xfff1a8], speed: [1, 5], up: [3, 9], life: [0.6, 1.3], size: [0.25, 0.5], grow: 0.7, drag: 2.2, spread: 0.6 });
+      emit(x, y + 1.2, z, { count: 10, colors: [0xffe17a, 0xffb02e], speed: [0, 1], up: [2, 4], life: [0.3, 0.5], size: [0.6, 0.9], grow: 1.6 });
+      emit(x, y + 1, z, { count: 40, colors: [0x5a514c, 0x3d3733, 0x7a706a], speed: [0.5, 2], up: [2, 4], life: [1.4, 2.4], size: [0.3, 0.5], grow: 0.6, drag: 1.5 });
       break;
     case "co2":
-      emit(x, y + 0.4, z, { count: 55, colors: [0xffffff, 0xe9f3f7, 0xcfe3ea], speed: [1, 3.5], up: [0.2, 1.8], life: [0.6, 1.2], size: [0.2, 0.4], grow: 1.4, drag: 2.5 });
+      emit(x, y + 0.4, z, { count: 55, colors: [0xffffff, 0xe9f3f7, 0xcfe3ea], speed: [1, 3.5], up: [0.2, 1.8], life: [0.6, 1.2], size: [0.18, 0.32], grow: 0.8, drag: 2.5 });
       break;
     case "splat":
       emit(x, y + 0.4, z, { count: 60, colors: [0xff7a1a, 0xffb21f, 0xffde59], speed: [3, 7], up: [2, 5], life: [0.5, 1], size: [0.1, 0.22], grav: 12 });
