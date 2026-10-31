@@ -343,7 +343,7 @@ function spawnPatchNear(s: GameState, f: Fire, minR: number, maxR: number, towar
   addFire(s, "paper", x, 0, z, 0.3, false);
 }
 
-export function useTool(s: GameState, f: Fire) {
+export function applyTool(s: GameState, f: Fire) {
   const tool = s.held;
   if (!tool) return;
   const outcome = outcomeOf(tool, f.kind, f.intensity);
@@ -392,7 +392,7 @@ export function useTool(s: GameState, f: Fire) {
 function doAction(s: GameState) {
   const fire = s.held ? nearestFire(s) : null;
   if (s.held && fire) {
-    useTool(s, fire);
+    applyTool(s, fire);
     return;
   }
   const st = nearestStation(s);
