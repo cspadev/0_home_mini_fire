@@ -262,11 +262,11 @@ export function startRound(s: GameState) {
   const order = [...SOURCES];
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(rand(s) * (i + 1));
-    [order[i], order[j]] = [order[j], order[i]];
+    [order[i], order[j]] = [order[j]!, order[i]!];
   }
-  igniteSource(s, order[0], 0.4);
-  igniteSource(s, order[1], 0.25);
-  s.pending.push({ source: order[2], at: Math.max(4, TUNING.LATE_FIRE_AT - (s.round - 1) * 1.5) });
+  igniteSource(s, order[0]!, 0.4);
+  igniteSource(s, order[1]!, 0.25);
+  s.pending.push({ source: order[2]!, at: Math.max(4, TUNING.LATE_FIRE_AT - (s.round - 1) * 1.5) });
 }
 
 export function startGame(s: GameState) {

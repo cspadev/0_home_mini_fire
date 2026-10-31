@@ -48,7 +48,7 @@ const rr = (a: number, b: number) => a + Math.random() * (b - a);
 
 export function emit(x: number, y: number, z: number, o: EmitOpts) {
   for (let i = 0; i < o.count; i++) {
-    const p = particles[cursor];
+    const p = particles[cursor]!;
     cursor = (cursor + 1) % MAX_PARTICLES;
     const a = Math.random() * Math.PI * 2;
     const sp = rr(o.speed[0], o.speed[1]);
@@ -64,7 +64,7 @@ export function emit(x: number, y: number, z: number, o: EmitOpts) {
     p.grow = o.grow ?? 0;
     p.grav = o.grav ?? 0;
     p.drag = o.drag ?? 1.5;
-    const [r, g, b] = hex(o.colors[Math.floor(Math.random() * o.colors.length)]);
+    const [r, g, b] = hex(o.colors[Math.floor(Math.random() * o.colors.length)]!);
     p.r = r;
     p.g = g;
     p.b = b;
