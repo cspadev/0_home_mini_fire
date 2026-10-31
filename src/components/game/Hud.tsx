@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FIRE_LABEL, TOOL_LABEL, type Tool } from "@/game/layout";
-import { continueGame, nearestFire, nearestStation, outcomeOf, startGame, TUNING, type Phase, type RoundResult } from "@/game/sim";
+import { continueGame, nearestFire, nearestStation, startGame, TUNING, type Phase, type RoundResult } from "@/game/sim";
 import { game, onGameEvent } from "@/game/runtime";
 import { initAudio, isMuted, setMuted } from "@/game/audio";
 
@@ -270,5 +270,3 @@ function Intro({ onStart }: { onStart: () => void }) {
   );
 }
 
-// re-export for tests / tooling
-export { outcomeOf };
