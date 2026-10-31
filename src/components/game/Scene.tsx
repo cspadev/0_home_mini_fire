@@ -57,7 +57,7 @@ function fitClone(src: THREE.Object3D, size: [number, number, number], skinned =
   return wrap;
 }
 
-function FitModel({ url, size, x, y = 0, z, rotY }: { url: string; size: [number, number, number]; x: number; y?: number; z: number; rotY: number }) {
+function FitModel({ url, size, x, y = 0, z, rotY }: { url: string; size: [number, number, number]; x: number; y?: number | undefined; z: number; rotY: number }) {
   const { scene } = useGLTF(url);
   const obj = useMemo(() => fitClone(scene, size), [scene, size]);
   return <primitive object={obj} position={[x, y, z]} rotation-y={rotY} />;
@@ -162,7 +162,7 @@ function Stations() {
     const t = state.clock.elapsedTime;
     rings.current.forEach((m, i) => {
       if (!m) return;
-      const near = Math.hypot(game.player.x - STATIONS[i].x, game.player.z - STATIONS[i].z) < TUNING.STATION_REACH;
+      const near = Math.hypot(game.player.x - STATIONS[i]!.x, game.player.z - STATIONS[i]!.z) < TUNING.STATION_REACH;
       const s = 1 + Math.sin(t * 4 + i) * 0.06 + (near ? 0.15 : 0);
       m.scale.setScalar(s);
       (m.material as THREE.MeshBasicMaterial).opacity = near ? 0.95 : 0.55;
@@ -195,7 +195,7 @@ function Stations() {
             </group>
             <mesh position={m.signPos} rotation-y={m.rot}>
               <planeGeometry args={[1.2, 0.6]} />
-              <meshBasicMaterial map={signs[i]} toneMapped={false} />
+              <meshBasicMaterial map={signs[i]!} toneMapped={false} />
             </mesh>
           </group>
         );
@@ -420,7 +420,7 @@ function FireSlot({ index, glow, scorch }: { index: number; glow: THREE.Texture;
     });
     if (inner.current) {
       const elec = f.kind === "electric";
-      inner.current.color.set(elec && Math.sin(t * 23) > 0.2 ? "#ffffff" : elec ? FIRE_COLORS.electric[2] : FIRE_COLORS.normal[2]);
+      inner.current.color.set(elec && Math.sin(t * 23) > 0.2 ? "#ffffff" : elec ? FIRE_COLORS.electric[2]! : FIRE_COLORS.normal[2]!);
     }
     if (glowRef.current) {
       const r = fireRadius(f) * 2.6;
@@ -530,7 +530,7 @@ function Particles() {
     const m = ref.current;
     if (!m) return;
     for (let i = 0; i < MAX_PARTICLES; i++) {
-      const p = particles[i];
+      const p = particles[i]!;
       if (p.life <= 0) {
         tmp.scale.setScalar(0);
         tmp.position.set(0, -50, 0);
