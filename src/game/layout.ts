@@ -6,7 +6,7 @@ export type Tool = "water" | "co2" | "blanket";
 
 export const ROOM = { minX: -10, maxX: 10, minZ: -8, maxZ: 8, height: 3.4 };
 export const DOOR = { x: -6.5, z: 7.6, width: 1.7 };
-export const PLAYER_START = { x: 0, z: 5.2, yaw: Math.PI };
+export const PLAYER_START = { x: 0, z: 3.4, yaw: Math.PI };
 
 export type ModelKey =
   | "desk"
