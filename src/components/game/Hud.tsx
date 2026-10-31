@@ -256,6 +256,7 @@ function Intro({ onStart }: { onStart: () => void }) {
           <span><kbd className="kbd">Shift</kbd> sprint</span>
           <span><kbd className="kbd">Space</kbd> jump</span>
           <span className="col-span-2"><kbd className="kbd">E</kbd> grab equipment / use it on a fire</span>
+          <span className="col-span-2 text-ink/60">On a phone: joystick to run & steer, USE and JUMP buttons.</span>
         </div>
         <p className="mt-3 text-center text-xs font-bold text-ink/60">
           {TUNING.ROUND_TIME}s per round · 3 lives · bonus points for time left
