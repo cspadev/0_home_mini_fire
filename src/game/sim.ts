@@ -6,6 +6,7 @@ import {
   ROOM,
   SOURCES,
   STATIONS,
+  ALARM,
   type FireKind,
   type Source,
   type Tool,
@@ -22,7 +23,7 @@ export const TUNING = {
   PLAYER_R: 0.35,
   REACH: 2.2,
   STATION_REACH: 1.7,
-  ROUND_TIME: 50,
+  ROUND_TIME: 45, // firefighter arrival countdown, starts when the alarm is raised
   MAX_FIRES: 16,
   SPREAD_AT: 0.85,
   SPREAD_EVERY: 4.5,
@@ -46,6 +47,8 @@ export const POINTS = {
   SAVED: 300,
   PER_SECOND_LEFT: 10,
   ESCAPED: 150,
+  ALARM: 50,
+  RESCUED: 200,
 };
 
 export type Outcome = "right" | "weak" | "wrong";
@@ -95,11 +98,12 @@ export type GameEvent =
   | { type: "hurt"; x: number; z: number }
   | { type: "ignite"; x: number; y: number; z: number; kind: FireKind }
   | { type: "doorBlocked" }
+  | { type: "alarm" }
   | { type: "jump" }
   | { type: "roundEnd"; result: RoundResult };
 
 export interface RoundResult {
-  kind: "saved" | "escaped" | "smoke" | "timeout" | "burned";
+  kind: "saved" | "rescued" | "escaped" | "smoke" | "timeout" | "burned";
   title: string;
   text: string;
   points: number;
@@ -122,6 +126,8 @@ export interface GameState {
   score: number;
   lives: number;
   timeLeft: number;
+  /** fire alarm pulled this round — starts the firefighter countdown */
+  alarm: boolean;
   elapsed: number;
   player: Player;
   fires: Fire[];
@@ -219,6 +225,7 @@ export function createGame(seed = Date.now() % 100000): GameState {
     score: 0,
     lives: TUNING.LIVES,
     timeLeft: TUNING.ROUND_TIME,
+    alarm: false,
     elapsed: 0,
     player: freshPlayer(),
     fires: [],
@@ -255,6 +262,7 @@ export function startRound(s: GameState) {
   s.uses = 0;
   s.elapsed = 0;
   s.timeLeft = TUNING.ROUND_TIME;
+  s.alarm = false;
   s.result = null;
   s.doorBlocked = false;
   s.pending = [];
@@ -274,6 +282,17 @@ export function startGame(s: GameState) {
   s.lives = TUNING.LIVES;
   s.round = 1;
   startRound(s);
+}
+
+/** After passing the safety quiz: full lives back, score kept, retry the round. */
+export function revive(s: GameState) {
+  if (s.phase !== "gameOver") return;
+  s.lives = TUNING.LIVES;
+  startRound(s);
+}
+
+export function nearAlarm(s: GameState): boolean {
+  return dist2(s.player.x, s.player.z, ALARM.x, ALARM.z) < TUNING.STATION_REACH ** 2;
 }
 
 /** Called from the round-end / game-over screen. */
@@ -395,7 +414,17 @@ function doAction(s: GameState) {
     applyTool(s, fire);
     return;
   }
+  if (!s.alarm && nearAlarm(s)) {
+    s.alarm = true;
+    s.score += POINTS.ALARM;
+    s.events.push({ type: "alarm" });
+    return;
+  }
   const st = nearestStation(s);
+  if (st && !s.alarm) {
+    s.events.push({ type: "hint", text: "Pull the fire alarm first! It's the red box by the exit." });
+    return;
+  }
   if (st) {
     const refill = s.held === st.tool;
     s.held = st.tool;
@@ -533,7 +562,7 @@ export function step(s: GameState, input: GameInput, rawDt: number) {
   if (s.phase !== "playing") return;
   const dt = Math.min(rawDt, 0.05);
   s.elapsed += dt;
-  s.timeLeft = Math.max(0, s.timeLeft - dt);
+  if (s.alarm) s.timeLeft = Math.max(0, s.timeLeft - dt);
   const p = s.player;
   p.invuln = Math.max(0, p.invuln - dt);
   p.stun = Math.max(0, p.stun - dt);
@@ -583,10 +612,11 @@ export function step(s: GameState, input: GameInput, rawDt: number) {
   }
   if (s.timeLeft <= 0) {
     endRound(s, {
-      kind: "timeout",
-      title: "Out of time!",
-      text: "The room filled with smoke. Fight fast — or get out fast.",
-      lifeLost: true,
+      kind: "rescued",
+      title: "Firefighters are here!",
+      text: "You raised the alarm and held the fire back until help arrived.",
+      points: POINTS.RESCUED,
+      lifeLost: false,
     });
   }
 }

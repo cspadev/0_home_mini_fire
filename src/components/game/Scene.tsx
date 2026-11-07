@@ -20,6 +20,7 @@ import { fireRadius, forwardOf, step, TUNING, type GameEvent } from "@/game/sim"
 import { burst, emit, MAX_PARTICLES, particles, stepParticles } from "@/game/fx";
 import { edges, emitUi, game, readInput, shake } from "@/game/runtime";
 import { setFireLevel, sfx } from "@/game/audio";
+import { Markers } from "./Markers";
 import { floorTexture, glowTexture, scorchTexture, signTexture, wallTexture } from "./textures";
 
 const MODEL_URL: Record<ModelKey, string> = {
@@ -709,6 +710,10 @@ function handleEvent(e: GameEvent) {
       if (e.result.lifeLost) sfx.lose();
       else sfx.win();
       break;
+    case "alarm":
+      sfx.win();
+      shake.amount = 0.2;
+      break;
     case "hint":
       sfx.hint();
       break;
@@ -824,6 +829,7 @@ export function Scene({ onReady }: { onReady: () => void }) {
       </Environment>
       <Room />
       <Stations />
+      <Markers />
       <Fires />
       <Particles />
       <Stepper />

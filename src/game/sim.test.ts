@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { SOURCES, DOOR } from "./layout";
+import { SOURCES, DOOR, ALARM, STATIONS } from "./layout";
+import { makeQuiz, quizPassed } from "./quiz";
 import {
   applyTool,
   createGame,
   forwardOf,
   igniteSource,
   outcomeOf,
+  revive,
   startGame,
   step,
   TUNING,
@@ -80,7 +82,8 @@ describe("rounds and lives", () => {
     const s = playing();
     igniteSource(s, src("paper"), 1);
     s.lives = 1;
-    s.timeLeft = 0.01;
+    s.player.x = s.fires[0]!.x + 0.1;
+    s.player.z = s.fires[0]!.z + 0.1;
     step(s, idle, 0.05);
     expect(s.phase).toBe("gameOver");
   });
@@ -127,5 +130,55 @@ describe("controls", () => {
     step(s, { ...idle, jump: true }, 0.05);
     expect(s.player.y).toBeGreaterThan(0);
     expect(TUNING.JUMP_V).toBeGreaterThan(0);
+  });
+});
+
+describe("alarm, firefighters and revive", () => {
+  it("equipment is locked until the alarm is pulled", () => {
+    const s = playing();
+    igniteSource(s, src("paper"), 0.3);
+    const st = STATIONS[0]!;
+    s.player.x = st.x; s.player.z = st.z;
+    step(s, { ...idle, action: true }, 0.016);
+    expect(s.held).toBe(null);
+  });
+
+  it("the 45 s firefighter countdown only runs after the alarm", () => {
+    const s = playing();
+    igniteSource(s, src("paper"), 0.1);
+    expect(TUNING.ROUND_TIME).toBe(45);
+    step(s, idle, 0.05);
+    expect(s.timeLeft).toBe(45);
+    s.player.x = ALARM.x; s.player.z = ALARM.z - 0.5;
+    step(s, { ...idle, action: true }, 0.05);
+    expect(s.alarm).toBe(true);
+    step(s, idle, 0.05);
+    expect(s.timeLeft).toBeLessThan(45);
+  });
+
+  it("firefighters arriving wins the round without losing a life", () => {
+    const s = playing();
+    igniteSource(s, src("paper"), 0.1);
+    s.alarm = true;
+    s.timeLeft = 0.01;
+    step(s, idle, 0.05);
+    expect(s.result?.kind).toBe("rescued");
+    expect(s.lives).toBe(3);
+  });
+
+  it("revive after game over restores 3 lives and keeps the score", () => {
+    const s = playing();
+    s.phase = "gameOver"; s.lives = 0; s.score = 420;
+    revive(s);
+    expect(s.phase).toBe("playing");
+    expect(s.lives).toBe(3);
+    expect(s.score).toBe(420);
+  });
+
+  it("quiz has 3 questions, needs 2 right", () => {
+    const q = makeQuiz();
+    expect(q.length).toBe(3);
+    expect(quizPassed(2)).toBe(true);
+    expect(quizPassed(1)).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FIRE_LABEL, TOOL_LABEL, type Tool } from "@/game/layout";
-import { continueGame, nearestFire, nearestStation, startGame, TUNING, type Phase, type RoundResult } from "@/game/sim";
+import { makeQuiz, quizPassed, QUIZ_PASS, type QuizQuestion } from "@/game/quiz";
+import { continueGame, nearAlarm, nearestFire, nearestStation, revive, startGame, TUNING, type Phase, type RoundResult } from "@/game/sim";
 import { game, onGameEvent } from "@/game/runtime";
 import { initAudio, isMuted, setMuted } from "@/game/audio";
 
@@ -14,6 +15,7 @@ interface Snap {
   held: Tool | null;
   uses: number;
   blocked: boolean;
+  alarm: boolean;
   smoke: number;
   prompt: string | null;
   result: RoundResult | null;
@@ -24,7 +26,8 @@ function snapshot(): Snap {
   if (game.phase === "playing") {
     const f = game.held ? nearestFire(game) : null;
     const st = nearestStation(game);
-    if (game.held && f) prompt = `Use ${TOOL_LABEL[game.held]} on the ${FIRE_LABEL[f.kind].toLowerCase()}`;
+    if (!game.alarm && nearAlarm(game)) prompt = "PULL THE FIRE ALARM";
+    else if (game.held && f) prompt = `Use ${TOOL_LABEL[game.held]} on the ${FIRE_LABEL[f.kind].toLowerCase()}`;
     else if (st) prompt = game.held === st.tool ? `Refill ${st.label}` : `Grab the ${st.label}`;
   }
   return {
@@ -37,6 +40,7 @@ function snapshot(): Snap {
     held: game.held,
     uses: game.uses,
     blocked: game.doorBlocked,
+    alarm: game.alarm,
     smoke: game.smoke,
     prompt,
     result: game.result,
@@ -79,6 +83,9 @@ export function Hud() {
           setTip({ id, word: "", tip: "Don't touch the flames — jump over small floor fires!", tone: "bad" });
         } else if (e.type === "doorBlocked") {
           setTip({ id, word: "", tip: "The exit is blocked! Clear the fire by the door.", tone: "bad" });
+        } else if (e.type === "alarm") {
+          setPop({ id, word: "ALARM RAISED!", tone: "good" });
+          setTip({ id, word: "", tip: `Firefighters are on the way — hold the fire back for ${TUNING.ROUND_TIME} seconds, or put it out!`, tone: "good" });
         } else if (e.type === "grab") {
           setTip({ id, word: "", tip: `${e.refill ? "Refilled" : "Picked up"}: ${TOOL_LABEL[e.tool]}`, tone: "info" });
         }
@@ -106,14 +113,14 @@ export function Hud() {
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      if (e.code === "Enter" && game.phase !== "playing") begin();
+      if (e.code === "Enter" && (game.phase === "intro" || game.phase === "roundEnd")) begin();
     };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   });
 
   const smokeK = Math.min(1, s.smoke / TUNING.SMOKE_LIMIT);
-  const low = s.time < 10;
+  const low = s.alarm && s.time < 10;
 
   return (
     <div className="pointer-events-none absolute inset-0 select-none font-body text-ink">
@@ -128,8 +135,17 @@ export function Hud() {
             <div className="mt-1 text-xs font-bold text-ink/60">Round {s.round} · Room 1</div>
           </div>
           <div className={`comic-card px-4 py-2 text-center ${low ? "animate-pulse bg-flame text-cream" : ""}`}>
-            <div className="text-xs font-extrabold uppercase tracking-wider opacity-70">Time</div>
-            <div className="font-display text-3xl leading-none tabular-nums sm:text-4xl">{Math.ceil(s.time)}</div>
+            {s.alarm ? (
+              <>
+                <div className="text-xs font-extrabold uppercase tracking-wider opacity-70">🚒 Firefighters in</div>
+                <div className="font-display text-3xl leading-none tabular-nums sm:text-4xl">{Math.ceil(s.time)}</div>
+              </>
+            ) : (
+              <>
+                <div className="text-xs font-extrabold uppercase tracking-wider opacity-70">Step 1</div>
+                <div className="font-display text-xl leading-none text-flame sm:text-2xl">🚨 Pull the alarm!</div>
+              </>
+            )}
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="comic-card flex gap-1 px-3 py-2 text-2xl" aria-label={`${s.lives} lives`}>
@@ -197,13 +213,14 @@ export function Hud() {
       )}
 
       {s.phase === "intro" && <Intro onStart={begin} />}
-      {(s.phase === "roundEnd" || s.phase === "gameOver") && s.result && (
+      {s.phase === "gameOver" && <ReviveQuiz score={s.score} onRevive={() => { revive(game); setS(snapshot()); }} onRestart={begin} />}
+      {s.phase === "roundEnd" && s.result && (
         <div className="pointer-events-auto absolute inset-0 flex items-center justify-center bg-ink/40 p-4">
           <div className="comic-card w-full max-w-md p-6 text-center">
-            <div className="font-display text-4xl text-flame sm:text-5xl">{s.phase === "gameOver" ? "Game over" : s.result.title}</div>
-            <p className="mt-3 font-bold">{s.phase === "gameOver" ? s.result.title + " " + s.result.text : s.result.text}</p>
+            <div className="font-display text-4xl text-flame sm:text-5xl">{s.result.title}</div>
+            <p className="mt-3 font-bold">{s.result.text}</p>
             {s.result.points > 0 && <p className="mt-2 font-display text-2xl text-exit">+{s.result.points}</p>}
-            {s.result.lifeLost && s.phase !== "gameOver" && <p className="mt-2 font-extrabold text-flame">−1 life</p>}
+            {s.result.lifeLost && <p className="mt-2 font-extrabold text-flame">−1 life</p>}
             <div className="mt-4 flex justify-center gap-6 font-extrabold">
               <div>
                 Score <div className="font-display text-3xl">{s.score}</div>
@@ -213,7 +230,7 @@ export function Hud() {
               </div>
             </div>
             <button className="comic-btn mt-6" onClick={begin} autoFocus>
-              {s.phase === "gameOver" ? "Play again" : s.result.lifeLost ? "Try again" : `Round ${s.round} →`}
+              {s.result.lifeLost ? "Try again" : `Round ${s.round} →`}
             </button>
             <p className="mt-2 text-xs font-bold text-ink/60">or press Enter</p>
           </div>
@@ -234,8 +251,8 @@ function Intro({ onStart }: { onStart: () => void }) {
       <div className="comic-card w-full max-w-lg p-5 sm:p-7">
         <h1 className="text-center font-display text-5xl leading-none text-flame sm:text-6xl">Stop the fire!</h1>
         <p className="mt-3 text-center font-bold">
-          A fire breaks out in the home-ec lab and it's spreading. Grab the <em>right</em> equipment and put it out — or get out
-          before the flames block the exit. Wrong tool? Things get <span className="text-flame">much</span> worse.
+          A fire breaks out in the home-ec lab and it's spreading. <b>First pull the red fire alarm</b> by the exit — then the firefighters are on their way. Hold the fire
+          back with the <em>right</em> equipment until they arrive, put it out, or get out before the flames block the exit. Wrong tool? Things get <span className="text-flame">much</span> worse.
         </p>
         <div className="mt-4 grid gap-1.5">
           {rows.map((r) => (
@@ -259,7 +276,7 @@ function Intro({ onStart }: { onStart: () => void }) {
           <span className="col-span-2 text-ink/60">On a phone: joystick to run & steer, USE and JUMP buttons.</span>
         </div>
         <p className="mt-3 text-center text-xs font-bold text-ink/60">
-          {TUNING.ROUND_TIME}s per round · 3 lives · bonus points for time left
+          Firefighters arrive {TUNING.ROUND_TIME}s after the alarm · 3 lives · escaping costs no life · out of lives? Pass a safety quiz to revive
         </p>
         <div className="mt-4 flex justify-center">
           <button className="comic-btn" onClick={onStart} autoFocus>
@@ -271,3 +288,85 @@ function Intro({ onStart }: { onStart: () => void }) {
   );
 }
 
+
+function ReviveQuiz({ score, onRevive, onRestart }: { score: number; onRevive: () => void; onRestart: () => void }) {
+  const [qs, setQs] = useState<QuizQuestion[]>(() => makeQuiz());
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [correct, setCorrect] = useState(0);
+  const done = i >= qs.length;
+  const passed = quizPassed(correct);
+  const q = qs[i];
+
+  const choose = (k: number) => {
+    if (picked !== null || !q) return;
+    setPicked(k);
+    if (k === q.answer) setCorrect((c) => c + 1);
+  };
+  const next = () => {
+    setPicked(null);
+    setI((x) => x + 1);
+  };
+  const retry = () => {
+    setQs(makeQuiz());
+    setI(0);
+    setCorrect(0);
+    setPicked(null);
+  };
+
+  return (
+    <div className="pointer-events-auto absolute inset-0 flex items-center justify-center overflow-y-auto bg-ink/50 p-4">
+      <div className="comic-card w-full max-w-lg p-5 sm:p-6">
+        <div className="text-center font-display text-4xl text-flame">Out of lives!</div>
+        <p className="mt-1 text-center font-bold">
+          Pass the fire safety test to revive — get {QUIZ_PASS} of {qs.length} right. Score so far: {score}
+        </p>
+        {!done && q && (
+          <div className="mt-4">
+            <div className="text-xs font-extrabold uppercase tracking-wider text-ink/60">
+              Question {i + 1} / {qs.length}
+            </div>
+            <div className="mt-1 text-lg font-extrabold">{q.q}</div>
+            <div className="mt-3 grid gap-2">
+              {q.options.map((o, k) => {
+                const state = picked === null ? "" : k === q.answer ? "bg-exit text-cream" : k === picked ? "bg-flame text-cream" : "opacity-50";
+                return (
+                  <button key={k} className={`rounded-xl border-2 border-ink bg-cream px-3 py-2 text-left font-extrabold ${state}`} onClick={() => choose(k)}>
+                    {o}
+                  </button>
+                );
+              })}
+            </div>
+            {picked !== null && (
+              <div className="mt-3 text-center">
+                <p className="font-bold">{picked === q.answer ? "✅ Correct! " : "❌ Not quite. "}{q.why}</p>
+                <button className="comic-btn mt-3" onClick={next} autoFocus>
+                  {i + 1 < qs.length ? "Next question" : "See result"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {done && (
+          <div className="mt-4 text-center">
+            <div className="font-display text-3xl">{correct} / {qs.length} correct</div>
+            {passed ? (
+              <>
+                <p className="mt-2 font-bold text-exit">Test passed — you're back in with full lives!</p>
+                <button className="comic-btn mt-4" onClick={onRevive} autoFocus>Revive ❤️❤️❤️</button>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 font-bold text-flame">Not enough this time.</p>
+                <div className="mt-4 flex flex-wrap justify-center gap-3">
+                  <button className="comic-btn" onClick={retry} autoFocus>New test</button>
+                  <button className="comic-btn" onClick={onRestart}>Start over</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
