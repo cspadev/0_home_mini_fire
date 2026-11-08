@@ -46,6 +46,17 @@ describe("equipment rules", () => {
     expect(s.fires.length).toBeGreaterThan(1);
   });
 
+  it("putting out a fire brings the firefighters 5 s sooner", () => {
+    const s = playing();
+    s.alarm = true;
+    s.timeLeft = 20;
+    const f = igniteSource(s, src("grease"), 0.5)!;
+    s.held = "blanket";
+    s.uses = 1;
+    applyTool(s, f);
+    expect(s.timeLeft).toBe(15);
+  });
+
   it("a fire blanket puts out a cooking-oil fire", () => {
     const s = playing();
     const f = igniteSource(s, src("grease"), 0.9)!;
@@ -143,17 +154,17 @@ describe("alarm, firefighters and revive", () => {
     expect(s.held).toBe(null);
   });
 
-  it("the 45 s firefighter countdown only runs after the alarm", () => {
+  it("the 30 s firefighter countdown only runs after the alarm", () => {
     const s = playing();
     igniteSource(s, src("paper"), 0.1);
-    expect(TUNING.ROUND_TIME).toBe(45);
+    expect(TUNING.ROUND_TIME).toBe(30);
     step(s, idle, 0.05);
-    expect(s.timeLeft).toBe(45);
+    expect(s.timeLeft).toBe(30);
     s.player.x = ALARM.x; s.player.z = ALARM.z - 0.5;
     step(s, { ...idle, action: true }, 0.05);
     expect(s.alarm).toBe(true);
     step(s, idle, 0.05);
-    expect(s.timeLeft).toBeLessThan(45);
+    expect(s.timeLeft).toBeLessThan(30);
   });
 
   it("firefighters arriving wins the round without losing a life", () => {

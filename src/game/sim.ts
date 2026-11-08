@@ -21,12 +21,13 @@ export const TUNING = {
   GRAVITY: 24,
   JUMP_V: 8.4,
   PLAYER_R: 0.35,
-  REACH: 2.2,
+  REACH: 2.8,
+  OUT_TIME_CUT: 5, // seconds shaved off the firefighter countdown per fire put out
   STATION_REACH: 1.7,
-  ROUND_TIME: 45, // firefighter arrival countdown, starts when the alarm is raised
+  ROUND_TIME: 30, // firefighter arrival countdown, starts when the alarm is raised
   MAX_FIRES: 16,
   SPREAD_AT: 0.85,
-  SPREAD_EVERY: 4.5,
+  SPREAD_EVERY: 7,
   DOOR_BLOCK_R: 2.3,
   DOOR_BLOCK_I: 0.6,
   SMOKE_LIMIT: 9,
@@ -396,6 +397,7 @@ export function applyTool(s: GameState, f: Fire) {
     out = true;
     s.fires = s.fires.filter((o) => o !== f);
     s.score += POINTS.OUT + (f.isSource ? POINTS.OUT_SOURCE_BONUS : 0);
+    if (s.alarm) s.timeLeft = Math.max(0.01, s.timeLeft - TUNING.OUT_TIME_CUT);
   } else if (outcome !== "wrong" && f.intensity < before) {
     s.score += POINTS.KNOCKDOWN;
   }
