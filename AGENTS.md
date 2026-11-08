@@ -15,3 +15,4 @@
 - One stepper `useFrame` (priority -1, in `Scene.tsx`) advances the sim, drains `game.events` into FX/audio/HUD, then moves the chase camera; per-frame state never goes through React state.
 - Dev hook: `window.__game` (`state`, `start()`, `sim(seconds, input)`) in dev builds for scripted checks; the canvas wrapper gets `data-scene-ready` once models load.
 - 3D models are CC0 Kenney GLBs hosted via lovable-assets pointers in `src/assets/models/` (see CREDITS.md).
+- Revive quiz questions live in `src/game/quiz.ts` (plain TS, tested in sim.test.ts); the HUD only renders them — keeps safety content editable in one place.
