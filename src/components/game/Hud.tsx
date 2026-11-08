@@ -17,6 +17,8 @@ interface Snap {
   blocked: boolean;
   alarm: boolean;
   smoke: number;
+  fireDistance: number | null;
+  inRange: boolean;
   prompt: string | null;
   result: RoundResult | null;
 }
@@ -42,6 +44,8 @@ function snapshot(): Snap {
     blocked: game.doorBlocked,
     alarm: game.alarm,
     smoke: game.smoke,
+    fireDistance: game.fires.length ? Math.min(...game.fires.map((f) => Math.hypot(f.x - game.player.x, f.z - game.player.z))) : null,
+    inRange: nearestFire(game) !== null,
     prompt,
     result: game.result,
   };
@@ -171,7 +175,7 @@ export function Hud() {
       {s.phase === "playing" && (
         <>
           {/* exit status */}
-          <div className="absolute left-1/2 top-24 -translate-x-1/2 sm:top-28">
+          <div className="absolute left-1/2 top-32 -translate-x-1/2 sm:top-28">
             <div className={`comic-chip ${s.blocked ? "bg-flame text-cream animate-pulse" : "bg-exit text-cream"}`}>
               {s.blocked ? "🚫 Exit blocked" : "🚪 Exit open"}
             </div>
@@ -179,6 +183,11 @@ export function Hud() {
 
           {/* held item + prompt */}
           <div className="absolute inset-x-0 bottom-28 flex flex-col items-center gap-2 px-4 sm:bottom-8">
+            {s.fireDistance !== null && (
+              <div className="comic-chip bg-cream text-ink tabular-nums">
+                🔥 {s.fireDistance.toFixed(1)} m · {s.inRange ? "In reach" : "Out of reach"}
+              </div>
+            )}
             {s.prompt && (
               <div className="comic-chip bg-sun text-ink">
                 <kbd className="mr-2 rounded-md border-2 border-ink bg-cream px-1.5 font-display">E</kbd>
@@ -190,7 +199,7 @@ export function Hud() {
                 <>
                   <span className="text-xl">{TOOL_ICON[s.held]}</span>
                   {TOOL_LABEL[s.held]}
-                  {s.held === "co2" && <span className="text-ink/60">· {s.uses} bursts</span>}
+                  <span className="text-ink/60">· {s.uses} {s.held === "co2" ? "bursts" : "uses"}</span>
                 </>
               ) : (
                 <span className="text-ink/60">Hands empty — grab equipment at a glowing ring</span>

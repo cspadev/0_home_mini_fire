@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { ALARM, DOOR, SOURCES, STATIONS, type FireKind } from "@/game/layout";
 import { game } from "@/game/runtime";
 import { sfx } from "@/game/audio";
+import { fireRadius, nearestFire } from "@/game/sim";
 import { signTexture } from "./textures";
 
 interface MarkerDef {
@@ -72,10 +73,20 @@ export function Markers() {
   const strobe = useRef<THREE.PointLight>(null);
   const lamp = useRef<THREE.MeshBasicMaterial>(null);
   const sirenT = useRef(0);
+  const targetRing = useRef<THREE.Mesh>(null);
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
     const playing = game.phase === "playing";
+    const target = game.held ? nearestFire(game) : null;
+    const ring = targetRing.current;
+    if (ring) {
+      ring.visible = playing && target !== null;
+      if (target) {
+        ring.position.set(target.x, target.y + 0.04, target.z);
+        ring.scale.setScalar(fireRadius(target) + 0.2);
+      }
+    }
     defs.forEach((d, i) => {
       const sp = sprites.current[i];
       const bm = beams.current[i];
@@ -97,7 +108,8 @@ export function Markers() {
       visible = visible && game.phase !== "intro";
       sp.visible = visible;
       sp.position.y = d.y + Math.sin(t * 2.2 + i) * 0.12 + emphasis * Math.abs(Math.sin(t * 5)) * 0.15;
-      const sc = 1 + emphasis * 0.15 * Math.abs(Math.sin(t * 5));
+      // Nearby signs should not grow into a screen-filling obstruction.
+      const sc = (1 + emphasis * 0.15 * Math.abs(Math.sin(t * 5))) * Math.min(1, state.camera.position.distanceTo(sp.position) / 5);
       sp.scale.set(1.3 * sc, 0.87 * sc, 1);
       if (bm) {
         bm.visible = visible && d.kind !== undefined && !(d.kind in FIRE_TAG);
@@ -121,6 +133,10 @@ export function Markers() {
 
   return (
     <>
+      <mesh ref={targetRing} rotation-x={-Math.PI / 2} visible={false} renderOrder={9}>
+        <ringGeometry args={[1, 1.12, 40]} />
+        <meshBasicMaterial color={STATION_TAG.water.bg} depthTest={false} depthWrite={false} toneMapped={false} />
+      </mesh>
       {/* fire alarm pull station on the south wall */}
       <group position={[ALARM.x, 1.3, 7.9]} rotation-y={Math.PI}>
         <mesh castShadow>

@@ -6,11 +6,13 @@ import {
   createGame,
   forwardOf,
   igniteSource,
+  nearestFire,
   outcomeOf,
   revive,
   startGame,
   step,
   TUNING,
+  TOOL_USES,
   type GameInput,
 } from "./sim";
 
@@ -27,6 +29,32 @@ function playing() {
 }
 
 describe("equipment rules", () => {
+  it.each(["water", "blanket"] as const)("%s supplies two uses per pickup", (tool) => {
+    const s = playing();
+    s.alarm = true;
+    const station = STATIONS.find((st) => st.tool === tool);
+    if (!station) throw new Error(`Missing ${tool} station`);
+    s.player.x = station.x; s.player.z = station.z;
+    step(s, { ...idle, action: true }, 0.016);
+    expect(s.uses).toBe(2);
+    const fire = igniteSource(s, src(tool === "water" ? "paper" : "grease"), 0.4);
+    if (!fire) throw new Error("Missing fire");
+    applyTool(s, fire);
+    expect(s.held).toBe(tool);
+    expect(s.uses).toBe(1);
+  });
+
+  it("CO2 supplies six bursts per pickup", () => {
+    expect(TOOL_USES.co2).toBe(6);
+    const s = playing();
+    s.alarm = true;
+    const station = STATIONS.find((st) => st.tool === "co2");
+    if (!station) throw new Error("Missing CO2 station");
+    s.player.x = station.x; s.player.z = station.z;
+    step(s, { ...idle, action: true }, 0.016);
+    expect(s.uses).toBe(6);
+  });
+
   it("matches the fire-safety table", () => {
     expect(outcomeOf("water", "paper", 0.5)).toBe("right");
     expect(outcomeOf("co2", "electric", 0.5)).toBe("right");
@@ -119,6 +147,17 @@ describe("rounds and lives", () => {
 });
 
 describe("controls", () => {
+  it("equipment reaches a little farther but still has a distance limit", () => {
+    const s = playing();
+    const fire = igniteSource(s, src("paper"), 0.5);
+    if (!fire) throw new Error("Missing fire");
+    expect(TUNING.REACH).toBe(3.4);
+    s.player.x = fire.x + 3.6; s.player.z = fire.z;
+    expect(nearestFire(s)).toBe(fire);
+    s.player.x = fire.x + 4;
+    expect(nearestFire(s)).toBeNull();
+  });
+
   it("steering right turns the player toward screen-right (+x when facing -z)", () => {
     const s = playing();
     igniteSource(s, src("paper"), 0.1);

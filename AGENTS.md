@@ -16,3 +16,4 @@
 - Dev hook: `window.__game` (`state`, `start()`, `sim(seconds, input)`) in dev builds for scripted checks; the canvas wrapper gets `data-scene-ready` once models load.
 - 3D models are CC0 Kenney GLBs hosted via lovable-assets pointers in `src/assets/models/` (see CREDITS.md).
 - Revive quiz questions live in `src/game/quiz.ts` (plain TS, tested in sim.test.ts); the HUD only renders them — keeps safety content editable in one place.
+- The shoulder camera uses named CHASE constants; the fire reach ring and HUD use nearestFire from the simulation so visual reach matches actions.

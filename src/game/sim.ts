@@ -21,7 +21,7 @@ export const TUNING = {
   GRAVITY: 24,
   JUMP_V: 8.4,
   PLAYER_R: 0.35,
-  REACH: 2.8,
+  REACH: 3.4,
   OUT_TIME_CUT: 5, // seconds shaved off the firefighter countdown per fire put out
   STATION_REACH: 1.7,
   ROUND_TIME: 30, // firefighter arrival countdown, starts when the alarm is raised
@@ -37,7 +37,7 @@ export const TUNING = {
   MAX_INTENSITY: 1.6,
 };
 
-export const TOOL_USES: Record<Tool, number> = { water: 1, co2: 4, blanket: 1 };
+export const TOOL_USES: Record<Tool, number> = { water: 2, co2: 6, blanket: 2 };
 export const GROW: Record<FireKind, number> = { paper: 0.075, electric: 0.06, grease: 0.09 };
 
 export const POINTS = {
