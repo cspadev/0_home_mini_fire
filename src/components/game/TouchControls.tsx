@@ -71,15 +71,6 @@ export function TouchControls() {
         >
           USE
         </button>
-        <button
-          className="h-16 w-16 self-end rounded-full border-4 border-ink bg-teal font-display text-cream shadow-[4px_4px_0_var(--ink)]"
-          onPointerDown={(e) => {
-            e.preventDefault();
-            edges.jump = true;
-          }}
-        >
-          JUMP
-        </button>
       </div>
     </div>
   );

@@ -84,7 +84,7 @@ export function Hud() {
           setTip({ id, word: "", tip: e.text, tone: "info" });
         } else if (e.type === "hurt") {
           setPop({ id, word: "OUCH!", tone: "bad" });
-          setTip({ id, word: "", tip: "Don't touch the flames — jump over small floor fires!", tone: "bad" });
+          setTip({ id, word: "", tip: "Don't touch the flames — go around them!", tone: "bad" });
         } else if (e.type === "doorBlocked") {
           setTip({ id, word: "", tip: "The exit is blocked! Clear the fire by the door.", tone: "bad" });
         } else if (e.type === "alarm") {
@@ -279,10 +279,9 @@ function Intro({ onStart }: { onStart: () => void }) {
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm font-bold">
           <span><kbd className="kbd">W</kbd>/<kbd className="kbd">S</kbd> run forward / back</span>
           <span><kbd className="kbd">A</kbd>/<kbd className="kbd">D</kbd> steer</span>
-          <span><kbd className="kbd">Shift</kbd> sprint</span>
-          <span><kbd className="kbd">Space</kbd> jump</span>
+
           <span className="col-span-2"><kbd className="kbd">E</kbd> grab equipment / use it on a fire</span>
-          <span className="col-span-2 text-ink/60">On a phone: joystick to run & steer, USE and JUMP buttons.</span>
+          <span className="col-span-2 text-ink/60">On a phone: joystick to run & steer, USE button.</span>
         </div>
         <p className="mt-3 text-center text-xs font-bold text-ink/60">
           Firefighters arrive {TUNING.ROUND_TIME}s after the alarm · 3 lives · escaping costs no life · out of lives? Pass a safety quiz to revive

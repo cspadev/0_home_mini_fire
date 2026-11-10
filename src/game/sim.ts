@@ -13,7 +13,7 @@ import {
 } from "./layout";
 
 export const TUNING = {
-  WALK: 4.4,
+  WALK: 5.6,
   RUN: 7.2,
   BACK_FACTOR: 0.55,
   TURN: 2.9,
@@ -551,7 +551,7 @@ function checkHurt(s: GameState) {
         endRound(s, {
           kind: "burned",
           title: "Ouch! Too close!",
-          text: "Never walk through flames — jump small floor fires or go around.",
+          text: "Never walk through flames — go around them.",
           lifeLost: true,
         });
       }

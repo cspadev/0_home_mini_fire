@@ -13,8 +13,8 @@ export function readInput(): GameInput {
   let turn = (k("KeyD", "ArrowRight") ? 1 : 0) - (k("KeyA", "ArrowLeft") ? 1 : 0);
   if (Math.abs(touch.y) > 0.12) forward = touch.y;
   if (Math.abs(touch.x) > 0.12) turn = touch.x;
-  const run = k("ShiftLeft", "ShiftRight") || touch.run || Math.hypot(touch.x, touch.y) > 0.92;
-  const input: GameInput = { forward, turn, run, jump: edges.jump, action: edges.action };
+  // Simplified controls: one steady speed, no sprint or jump (mobile-friendly).
+  const input: GameInput = { forward, turn, run: false, jump: false, action: edges.action };
   edges.jump = false;
   edges.action = false;
   return input;
