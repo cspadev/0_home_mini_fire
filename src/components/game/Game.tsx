@@ -20,8 +20,7 @@ export default function Game() {
       if (e.repeat) return;
       initAudio();
       if (game.phase !== "playing") return;
-      if (e.code === "Space") edges.jump = true;
-      if (e.code === "KeyE" || e.code === "KeyF") edges.action = true;
+      if (e.code === "KeyE" || e.code === "KeyF" || e.code === "Space") edges.action = true;
     };
     const up = (e: KeyboardEvent) => keys.delete(e.code);
     const blur = () => keys.clear();
