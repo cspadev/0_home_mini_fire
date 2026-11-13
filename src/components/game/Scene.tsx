@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useSyncExternalStore, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, useAnimations, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -14,14 +14,26 @@ import sinkModel from "@/assets/models/kitchenSink.glb.asset.json";
 import trashModel from "@/assets/models/trashcan.glb.asset.json";
 import bookcaseModel from "@/assets/models/bookcaseOpen.glb.asset.json";
 import plantModel from "@/assets/models/pottedPlant.glb.asset.json";
+import tableModel from "@/assets/models/table.glb.asset.json";
+import benchModel from "@/assets/models/bench.glb.asset.json";
+import kitchenFridgeModel from "@/assets/models/kitchenFridge.glb.asset.json";
+import kitchenMicrowaveModel from "@/assets/models/kitchenMicrowave.glb.asset.json";
+import laptopModel from "@/assets/models/laptop.glb.asset.json";
+import stoolBarModel from "@/assets/models/stoolBar.glb.asset.json";
+import cardboardBoxClosedModel from "@/assets/models/cardboardBoxClosed.glb.asset.json";
+import speakerModel from "@/assets/models/speaker.glb.asset.json";
+import kitchenStoveElectricModel from "@/assets/models/kitchenStoveElectric.glb.asset.json";
+import kitchenBarModel from "@/assets/models/kitchenBar.glb.asset.json";
+import televisionModernModel from "@/assets/models/televisionModern.glb.asset.json";
+import firefighterModel from "@/assets/models/firefighter.glb.asset.json";
 
-import { DOOR, FURNITURE, ROOM, STATIONS, type ModelKey, type Tool } from "@/game/layout";
-import { fireRadius, forwardOf, step, TUNING, type GameEvent } from "@/game/sim";
+import { currentRoom, DOOR, FURNITURE, ROOM, STATIONS, type ModelKey, type Tool } from "@/game/layout";
+import { fireRadius, forwardOf, RESCUE_TIME, step, TUNING, type GameEvent } from "@/game/sim";
 import { burst, emit, MAX_PARTICLES, particles, stepParticles } from "@/game/fx";
-import { edges, emitUi, game, readInput, shake } from "@/game/runtime";
+import { edges, emitUi, game, getRoomId, readInput, shake, subscribeRoom } from "@/game/runtime";
 import { setFireLevel, sfx } from "@/game/audio";
 import { Markers } from "./Markers";
-import { floorTexture, glowTexture, scorchTexture, signTexture, wallTexture } from "./textures";
+import { courtTexture, floorTexture, glowTexture, scorchTexture, signTexture, wallTexture } from "./textures";
 
 const MODEL_URL: Record<ModelKey, string> = {
   desk: deskModel.url,
@@ -33,9 +45,21 @@ const MODEL_URL: Record<ModelKey, string> = {
   trashcan: trashModel.url,
   bookcaseOpen: bookcaseModel.url,
   pottedPlant: plantModel.url,
+  table: tableModel.url,
+  bench: benchModel.url,
+  kitchenFridge: kitchenFridgeModel.url,
+  kitchenMicrowave: kitchenMicrowaveModel.url,
+  laptop: laptopModel.url,
+  stoolBar: stoolBarModel.url,
+  cardboardBoxClosed: cardboardBoxClosedModel.url,
+  speaker: speakerModel.url,
+  kitchenStoveElectric: kitchenStoveElectricModel.url,
+  kitchenBar: kitchenBarModel.url,
+  televisionModern: televisionModernModel.url,
 };
 Object.values(MODEL_URL).forEach((u) => useGLTF.preload(u));
 useGLTF.preload(studentModel.url);
+useGLTF.preload(firefighterModel.url);
 
 // ---------------------------------------------------------------- models
 
@@ -219,17 +243,19 @@ function Stations() {
 // ---------------------------------------------------------------- room
 
 function Room() {
-  const floor = useMemo(() => floorTexture(), []);
+  const th = currentRoom.theme;
+  const floor = useMemo(() => floorTexture(th), [th]);
+  const court = useMemo(() => (th.hoops ? courtTexture() : null), [th]);
   const wallNS = useMemo(() => {
-    const t = wallTexture();
+    const t = wallTexture(th);
     t.repeat.set(8, 1);
     return t;
-  }, []);
+  }, [th]);
   const wallEW = useMemo(() => {
-    const t = wallTexture();
+    const t = wallTexture(th);
     t.repeat.set(6, 1);
     return t;
-  }, []);
+  }, [th]);
   const exitSign = useMemo(() => signTexture([{ text: "EXIT →", color: "#ffffff", size: 120 }], "#1f9d55", "#0f4d2a"), []);
   const blockedSign = useMemo(() => signTexture([{ text: "BLOCKED!", color: "#ffffff", size: 110 }], "#d62f2f", "#5e1010"), []);
   const board = useMemo(
@@ -285,6 +311,29 @@ function Room() {
         <planeGeometry args={[W, D]} />
         <meshStandardMaterial map={floor} roughness={0.55} />
       </mesh>
+      {court && (
+        <mesh rotation-x={-Math.PI / 2} position-y={0.006}>
+          <planeGeometry args={[W - 1, D - 1]} />
+          <meshBasicMaterial map={court} transparent depthWrite={false} toneMapped={false} />
+        </mesh>
+      )}
+      {th.hoops &&
+        [-1, 1].map((side) => (
+          <group key={side} position={[side * (ROOM.maxX - 0.15), 0, 0]} rotation-y={-side * Math.PI / 2}>
+            <mesh position={[0, 2.75, 0]}>
+              <boxGeometry args={[1.8, 1.1, 0.06]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.4} />
+            </mesh>
+            <mesh position={[0, 2.6, 0.04]}>
+              <planeGeometry args={[0.6, 0.45]} />
+              <meshBasicMaterial color="#e2332f" />
+            </mesh>
+            <mesh position={[0, 2.35, 0.4]} rotation-x={Math.PI / 2}>
+              <torusGeometry args={[0.26, 0.03, 8, 20]} />
+              <meshStandardMaterial color="#ff6a1a" metalness={0.4} />
+            </mesh>
+          </group>
+        ))}
       <mesh rotation-x={Math.PI / 2} position={[0, H, 0]}>
         <planeGeometry args={[W, D]} />
         <meshStandardMaterial color="#fbf3e4" emissive="#f3e2c4" emissiveIntensity={0.55} roughness={1} />
@@ -636,6 +685,96 @@ function Player() {
   );
 }
 
+// ---------------------------------------------------------------- firefighters
+
+const CREW = 3;
+function Firefighters() {
+  const { scene, animations } = useGLTF(firefighterModel.url);
+  const models = useMemo(
+    () =>
+      Array.from({ length: CREW }, () => {
+        const m = fitClone(scene, [2, 1.6, 2], true);
+        m.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (mesh.isMesh) {
+            const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+            mat.color.lerp(new THREE.Color("#e2332f"), 0.45);
+            mesh.material = mat;
+          }
+        });
+        return m;
+      }),
+    [scene],
+  );
+  const groups = useRef<(THREE.Group | null)[]>([]);
+  const mixers = useMemo(() => models.map((m) => new THREE.AnimationMixer(m)), [models]);
+  useEffect(() => {
+    const clip = animations.find((a) => a.name === "sprint") ?? animations[0];
+    if (clip) mixers.forEach((mx, i) => mx.clipAction(clip).play().time = i * 0.2);
+  }, [animations, mixers]);
+  const sprayT = useRef(0);
+
+  useFrame((_, delta) => {
+    const t = game.rescueT;
+    const on = t >= 0 && game.phase === "playing";
+    sprayT.current += delta;
+    groups.current.forEach((g, i) => {
+      if (!g) return;
+      g.visible = on;
+      if (!on) return;
+      mixers[i]!.update(delta * 1.4);
+      // charge in from outside the door, fan out, then stand and hose
+      const fanX = DOOR.x + (i - 1) * 3.2 + 3;
+      const fanZ = 3.5 - i * 1.8;
+      const k = Math.min(1, Math.max(0, (t - i * 0.18) / 1.1));
+      const e = 1 - (1 - k) ** 3;
+      const sx = DOOR.x;
+      const sz = ROOM.maxZ + 3;
+      const x = sx + (fanX - sx) * e;
+      const z = sz + (fanZ - sz) * e;
+      g.position.set(x, k < 1 ? Math.abs(Math.sin(t * 14 + i)) * 0.25 : 0, z);
+      const target = game.fires[i % Math.max(1, game.fires.length)];
+      const tx = target ? target.x : 0;
+      const tz = target ? target.z : -4;
+      g.rotation.y = k < 1 ? Math.atan2(fanX - sx, fanZ - sz) : Math.atan2(tx - x, tz - z);
+      if (k >= 1 && target && sprayT.current > 0.05) {
+        for (let s = 1; s <= 6; s++) {
+          const u = s / 7;
+          emit(x + (tx - x) * u, 1.1 + (target.y + 0.4 - 1.1) * u + Math.sin(u * Math.PI) * 0.9, z + (tz - z) * u, {
+            count: 2, colors: [0x5ec8ff, 0xbfeaff, 0xffffff], speed: [0.2, 0.8], up: [-0.4, 0.6], life: [0.25, 0.45], size: [0.1, 0.18], drag: 3,
+          });
+        }
+      }
+    });
+    if (sprayT.current > 0.05) sprayT.current = 0;
+    void RESCUE_TIME;
+  });
+
+  return (
+    <>
+      {models.map((m, i) => (
+        <group key={i} ref={(el) => { groups.current[i] = el; }} visible={false}>
+          <primitive object={m} />
+          {/* helmet */}
+          <mesh position={[0, 1.42, 0]} castShadow>
+            <sphereGeometry args={[0.36, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial color="#ffcc1a" roughness={0.35} />
+          </mesh>
+          <mesh position={[0, 1.42, 0]} rotation-x={-Math.PI / 2}>
+            <ringGeometry args={[0.3, 0.5, 20]} />
+            <meshStandardMaterial color="#ffcc1a" side={THREE.DoubleSide} />
+          </mesh>
+          {/* hose nozzle */}
+          <mesh position={[0.25, 0.85, 0.35]} rotation-x={Math.PI / 2}>
+            <cylinderGeometry args={[0.05, 0.08, 0.5, 8]} />
+            <meshStandardMaterial color="#333" metalness={0.6} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
+
 // ---------------------------------------------------------------- stepper + camera
 
 const LOOK = new THREE.Vector3();
@@ -717,6 +856,13 @@ function handleEvent(e: GameEvent) {
       break;
     case "hint":
       sfx.hint();
+      break;
+    case "firefighters":
+      sfx.alarm();
+      sfx.win();
+      shake.amount = 1.1;
+      burst("steam", DOOR.x, 1.2, DOOR.z);
+      burst("splash", DOOR.x, 1.4, DOOR.z - 0.5);
       break;
   }
   emitUi(e);
@@ -807,9 +953,10 @@ function ReadySignal({ onReady }: { onReady: () => void }) {
 }
 
 export function Scene({ onReady }: { onReady: () => void }) {
+  const roomId = useSyncExternalStore(subscribeRoom, getRoomId, getRoomId);
   return (
     <>
-      <color attach="background" args={["#f3d9b5"]} />
+      <color attach="background" args={[currentRoom.theme.sky]} />
       <fog attach="fog" args={["#bfb4a8", 15, 60]} />
       <hemisphereLight args={["#fff4e0", "#c98a5a", 0.9]} />
       <directionalLight
@@ -829,14 +976,15 @@ export function Scene({ onReady }: { onReady: () => void }) {
         <Lightformer intensity={1} color="#8fd3c8" position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
         <Lightformer intensity={1} color="#ffb48a" position={[5, 1, 1]} rotation-y={-Math.PI / 2} scale={[20, 1, 1]} />
       </Environment>
-      <Room />
+      <Room key={`room-${roomId}`} />
       <Stations />
-      <Markers />
+      <Markers key={`mk-${roomId}`} />
       <Fires />
       <Particles />
       <Stepper />
       <Suspense fallback={null}>
-        <Furniture />
+        <Furniture key={`fu-${roomId}`} />
+        <Firefighters />
         <Player />
         <ReadySignal onReady={onReady} />
       </Suspense>

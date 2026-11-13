@@ -20,17 +20,40 @@ function canvasTex(w: number, h: number, draw: (g: CanvasRenderingContext2D) => 
   return t;
 }
 
-export function floorTexture() {
+import type { RoomTheme } from "@/game/layout";
+
+export function floorTexture(th: RoomTheme) {
   const t = canvasTex(512, 512, (g) => {
+    if (th.floorStyle === "wood") {
+      for (let i = 0; i < 16; i++) {
+        g.fillStyle = i % 2 ? th.floorA : th.floorB;
+        g.fillRect(0, i * 32, 512, 32);
+        g.fillStyle = "rgba(90,50,20,0.18)";
+        g.fillRect(((i * 197) % 512), i * 32, 3, 32);
+        for (let k = 0; k < 30; k++) {
+          g.fillStyle = "rgba(110,60,20,0.08)";
+          g.fillRect(Math.random() * 512, i * 32 + Math.random() * 32, 30, 2);
+        }
+      }
+      return;
+    }
+    if (th.floorStyle === "carpet") {
+      g.fillStyle = th.floorA;
+      g.fillRect(0, 0, 512, 512);
+      for (let k = 0; k < 4000; k++) {
+        g.fillStyle = Math.random() < 0.5 ? th.floorB : "rgba(20,30,50,0.25)";
+        g.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+      }
+      return;
+    }
     const n = 4;
     const s = 512 / n;
     for (let i = 0; i < n; i++)
       for (let j = 0; j < n; j++) {
-        g.fillStyle = (i + j) % 2 === 0 ? "#efe6d2" : "#5fb3a8";
+        g.fillStyle = (i + j) % 2 === 0 ? th.floorA : th.floorB;
         g.fillRect(i * s, j * s, s, s);
-        // speckle
         for (let k = 0; k < 60; k++) {
-          g.fillStyle = (i + j) % 2 === 0 ? "rgba(120,100,70,0.08)" : "rgba(20,60,60,0.12)";
+          g.fillStyle = "rgba(60,50,40,0.08)";
           g.fillRect(i * s + Math.random() * s, j * s + Math.random() * s, 3, 3);
         }
       }
@@ -50,18 +73,39 @@ export function floorTexture() {
   return t;
 }
 
-export function wallTexture() {
+/** Basketball court markings drawn over the whole gym floor. */
+export function courtTexture() {
+  return canvasTex(1024, 820, (g) => {
+    g.clearRect(0, 0, 1024, 820);
+    g.strokeStyle = "rgba(255,255,255,0.9)";
+    g.lineWidth = 8;
+    g.strokeRect(60, 60, 904, 700);
+    g.beginPath();
+    g.moveTo(512, 60);
+    g.lineTo(512, 760);
+    g.stroke();
+    g.beginPath();
+    g.arc(512, 410, 90, 0, Math.PI * 2);
+    g.stroke();
+    g.fillStyle = "rgba(214,47,47,0.55)";
+    g.fillRect(60, 300, 170, 220);
+    g.fillRect(794, 300, 170, 220);
+    g.strokeRect(60, 300, 170, 220);
+    g.strokeRect(794, 300, 170, 220);
+  });
+}
+
+export function wallTexture(th: RoomTheme) {
   const t = canvasTex(256, 512, (g) => {
-    g.fillStyle = "#f6dcb8";
+    g.fillStyle = th.wall;
     g.fillRect(0, 0, 256, 512);
     for (let k = 0; k < 400; k++) {
-      g.fillStyle = `rgba(150,100,60,${Math.random() * 0.05})`;
+      g.fillStyle = `rgba(120,100,80,${Math.random() * 0.05})`;
       g.fillRect(Math.random() * 256, Math.random() * 512, 4, 4);
     }
-    // wainscot (lower ~35%)
-    g.fillStyle = "#e0704f";
+    g.fillStyle = th.wainscot;
     g.fillRect(0, 330, 256, 182);
-    g.fillStyle = "#c95a3d";
+    g.fillStyle = th.trim;
     for (let x = 0; x < 256; x += 32) g.fillRect(x, 330, 4, 182);
     g.fillStyle = "#3a2f4a";
     g.fillRect(0, 322, 256, 12);

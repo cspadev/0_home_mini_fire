@@ -101,6 +101,7 @@ export type GameEvent =
   | { type: "doorBlocked" }
   | { type: "alarm" }
   | { type: "jump" }
+  | { type: "firefighters" }
   | { type: "roundEnd"; result: RoundResult };
 
 export interface RoundResult {
@@ -129,6 +130,8 @@ export interface GameState {
   timeLeft: number;
   /** fire alarm pulled this round — starts the firefighter countdown */
   alarm: boolean;
+  /** seconds since firefighters burst in (-1 = not yet) */
+  rescueT: number;
   elapsed: number;
   player: Player;
   fires: Fire[];
@@ -227,6 +230,7 @@ export function createGame(seed = Date.now() % 100000): GameState {
     lives: TUNING.LIVES,
     timeLeft: TUNING.ROUND_TIME,
     alarm: false,
+    rescueT: -1,
     elapsed: 0,
     player: freshPlayer(),
     fires: [],
@@ -264,6 +268,7 @@ export function startRound(s: GameState) {
   s.elapsed = 0;
   s.timeLeft = TUNING.ROUND_TIME;
   s.alarm = false;
+  s.rescueT = -1;
   s.result = null;
   s.doorBlocked = false;
   s.pending = [];
@@ -297,6 +302,12 @@ export function nearAlarm(s: GameState): boolean {
 }
 
 /** Called from the round-end / game-over screen. */
+/** Back to the room picker. */
+export function toMenu(s: GameState) {
+  s.phase = "intro";
+  s.fires = [];
+}
+
 export function continueGame(s: GameState) {
   if (s.phase === "gameOver") startGame(s);
   else if (s.phase === "roundEnd") startRound(s);
@@ -564,6 +575,10 @@ export function step(s: GameState, input: GameInput, rawDt: number) {
   if (s.phase !== "playing") return;
   const dt = Math.min(rawDt, 0.05);
   s.elapsed += dt;
+  if (s.rescueT >= 0) {
+    stepRescue(s, dt);
+    return;
+  }
   if (s.alarm) s.timeLeft = Math.max(0, s.timeLeft - dt);
   const p = s.player;
   p.invuln = Math.max(0, p.invuln - dt);
@@ -613,6 +628,24 @@ export function step(s: GameState, input: GameInput, rawDt: number) {
     return;
   }
   if (s.timeLeft <= 0) {
+    s.rescueT = 0;
+    s.events.push({ type: "firefighters" });
+  }
+}
+
+/** Firefighters charge in from the door and hose every fire down, then the round ends. */
+export const RESCUE_TIME = 3.5;
+function stepRescue(s: GameState, dt: number) {
+  s.rescueT += dt;
+  s.player.speed = 0;
+  if (s.rescueT > 1) {
+    for (const f of s.fires) f.intensity -= dt * 0.55;
+    s.fires = s.fires.filter((f) => f.intensity > 0.02);
+    s.pending = [];
+  }
+  s.smoke = s.fires.reduce((a, f) => a + f.intensity, 0);
+  if (s.rescueT >= RESCUE_TIME) {
+    s.fires = [];
     endRound(s, {
       kind: "rescued",
       title: "Firefighters are here!",

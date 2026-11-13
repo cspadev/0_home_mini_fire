@@ -34,3 +34,18 @@ export function emitUi(e: GameEvent) {
 
 /** camera shake budget, decays in the scene stepper */
 export const shake = { amount: 0 };
+
+// ---- room selection (the scene re-mounts room content when this changes)
+import { setRoom, currentRoom, type RoomId } from "./layout";
+const roomListeners = new Set<() => void>();
+export function selectRoom(id: RoomId) {
+  setRoom(id);
+  roomListeners.forEach((l) => l());
+}
+export function subscribeRoom(fn: () => void) {
+  roomListeners.add(fn);
+  return () => {
+    roomListeners.delete(fn);
+  };
+}
+export const getRoomId = () => currentRoom.id;

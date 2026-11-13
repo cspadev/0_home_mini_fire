@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SOURCES, DOOR, ALARM, STATIONS } from "./layout";
+import { ROOMS, setRoom, OBSTACLES, SOURCES, DOOR, ALARM, STATIONS } from "./layout";
 import { makeQuiz, quizPassed } from "./quiz";
 import {
   applyTool,
@@ -212,7 +212,11 @@ describe("alarm, firefighters and revive", () => {
     s.alarm = true;
     s.timeLeft = 0.01;
     step(s, idle, 0.05);
+    expect(s.rescueT).toBeGreaterThanOrEqual(0);
+    expect(s.result).toBeNull();
+    for (let i = 0; i < 80; i++) step(s, idle, 0.05);
     expect(s.result?.kind).toBe("rescued");
+    expect(s.fires.length).toBe(0);
     expect(s.lives).toBe(3);
   });
 
@@ -230,5 +234,25 @@ describe("alarm, firefighters and revive", () => {
     expect(q.length).toBe(3);
     expect(quizPassed(2)).toBe(true);
     expect(quizPassed(1)).toBe(false);
+  });
+});
+
+describe("rooms", () => {
+  it("has the 5 school rooms, each with 3 fire sources", () => {
+    expect(ROOMS.map((r) => r.id)).toEqual(["kitchen", "computer", "gym", "cafeteria", "chemistry"]);
+    for (const r of ROOMS) expect(r.sources.length).toBe(3);
+  });
+
+  it("picking a room swaps the fire sources and the player starts clear of furniture", () => {
+    for (const r of ROOMS) {
+      setRoom(r.id);
+      expect(SOURCES[0]!.label).toBe(r.sources[0]!.label);
+      const s = createGame(3);
+      startGame(s);
+      const p = s.player;
+      for (const b of OBSTACLES) expect(Math.abs(p.x - b.x) > b.hw + 0.3 || Math.abs(p.z - b.z) > b.hd + 0.3).toBe(true);
+      for (const st of STATIONS) for (const b of OBSTACLES) expect(Math.abs(st.x - b.x) > b.hw || Math.abs(st.z - b.z) > b.hd).toBe(true);
+    }
+    setRoom("kitchen");
   });
 });

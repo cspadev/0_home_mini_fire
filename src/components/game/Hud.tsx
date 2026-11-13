@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { FIRE_LABEL, TOOL_LABEL, type Tool } from "@/game/layout";
+import { currentRoom, FIRE_LABEL, ROOMS, TOOL_LABEL, type RoomId, type Tool } from "@/game/layout";
 import { makeQuiz, quizPassed, QUIZ_PASS, type QuizQuestion } from "@/game/quiz";
-import { continueGame, nearAlarm, nearestFire, nearestStation, revive, startGame, TUNING, type Phase, type RoundResult } from "@/game/sim";
-import { game, onGameEvent } from "@/game/runtime";
+import { continueGame, toMenu, nearAlarm, nearestFire, nearestStation, revive, startGame, TUNING, type Phase, type RoundResult } from "@/game/sim";
+import { game, onGameEvent, selectRoom } from "@/game/runtime";
 import { initAudio, isMuted, setMuted } from "@/game/audio";
 
 interface Snap {
@@ -90,6 +90,9 @@ export function Hud() {
         } else if (e.type === "alarm") {
           setPop({ id, word: "ALARM RAISED!", tone: "good" });
           setTip({ id, word: "", tip: `Firefighters are on the way — hold the fire back for ${TUNING.ROUND_TIME} seconds, or put it out!`, tone: "good" });
+        } else if (e.type === "firefighters") {
+          setPop({ id, word: "FIREFIGHTERS!!", tone: "good" });
+          setTip({ id, word: "", tip: "Help is here — step back and let the pros handle it.", tone: "good" });
         } else if (e.type === "grab") {
           setTip({ id, word: "", tip: `${e.refill ? "Refilled" : "Picked up"}: ${TOOL_LABEL[e.tool]}`, tone: "info" });
         }
@@ -221,7 +224,7 @@ export function Hud() {
         </div>
       )}
 
-      {s.phase === "intro" && <Intro onStart={begin} />}
+      {s.phase === "intro" && <Intro onStart={(id) => { selectRoom(id); begin(); }} />}
       {s.phase === "gameOver" && <ReviveQuiz score={s.score} onRevive={() => { revive(game); setS(snapshot()); }} onRestart={begin} />}
       {s.phase === "roundEnd" && s.result && (
         <div className="pointer-events-auto absolute inset-0 flex items-center justify-center bg-ink/40 p-4">
@@ -238,9 +241,14 @@ export function Hud() {
                 Best <div className="font-display text-3xl">{s.best}</div>
               </div>
             </div>
-            <button className="comic-btn mt-6" onClick={begin} autoFocus>
-              {s.result.lifeLost ? "Try again" : `Round ${s.round} →`}
-            </button>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button className="comic-btn" onClick={begin} autoFocus>
+                {s.result.lifeLost ? "Try again" : `Round ${s.round} →`}
+              </button>
+              <button className="comic-btn bg-cream" onClick={() => { toMenu(game); setS(snapshot()); }}>
+                Pick a room
+              </button>
+            </div>
             <p className="mt-2 text-xs font-bold text-ink/60">or press Enter</p>
           </div>
         </div>
@@ -249,7 +257,8 @@ export function Hud() {
   );
 }
 
-function Intro({ onStart }: { onStart: () => void }) {
+function Intro({ onStart }: { onStart: (id: RoomId) => void }) {
+  const [room, setRoom] = useState<RoomId>(currentRoom.id);
   const rows: { fire: string; icon: string; tool: Tool }[] = [
     { fire: "Paper / trash", icon: "🗑️", tool: "water" },
     { fire: "Computer / plug", icon: "🔌", tool: "co2" },
@@ -260,9 +269,25 @@ function Intro({ onStart }: { onStart: () => void }) {
       <div className="comic-card w-full max-w-lg p-5 sm:p-7">
         <h1 className="text-center font-display text-5xl leading-none text-flame sm:text-6xl">Stop the fire!</h1>
         <p className="mt-3 text-center font-bold">
-          A fire breaks out in the home-ec lab and it's spreading. <b>First pull the red fire alarm</b> by the exit — then the firefighters are on their way. Hold the fire
+          A fire breaks out at school and it's spreading. <b>First pull the red fire alarm</b> by the exit — then the firefighters are on their way. Hold the fire
           back with the <em>right</em> equipment until they arrive, put it out, or get out before the flames block the exit. Wrong tool? Things get <span className="text-flame">much</span> worse.
         </p>
+        <div className="mt-4">
+          <div className="mb-1.5 text-center font-display text-xl">Pick a room</div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {ROOMS.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setRoom(r.id)}
+                aria-pressed={room === r.id}
+                className={`rounded-xl border-2 border-ink px-2 py-2 text-left font-extrabold leading-tight transition ${room === r.id ? "bg-sun shadow-[3px_3px_0_var(--ink)]" : "bg-cream"}`}
+              >
+                <span className="text-lg">{r.icon} {r.name}</span>
+                <span className="mt-0.5 block text-xs font-bold text-ink/60">{r.blurb}</span>
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="mt-4 grid gap-1.5">
           {rows.map((r) => (
             <div key={r.tool} className="flex items-center justify-between rounded-xl border-2 border-ink bg-cream px-3 py-1.5 font-extrabold">
@@ -287,8 +312,8 @@ function Intro({ onStart }: { onStart: () => void }) {
           Firefighters arrive {TUNING.ROUND_TIME}s after the alarm · 3 lives · escaping costs no life · out of lives? Pass a safety quiz to revive
         </p>
         <div className="mt-4 flex justify-center">
-          <button className="comic-btn" onClick={onStart} autoFocus>
-            Start round 1
+          <button className="comic-btn" onClick={() => onStart(room)} autoFocus>
+            Start: {ROOMS.find((r) => r.id === room)?.name}
           </button>
         </div>
       </div>

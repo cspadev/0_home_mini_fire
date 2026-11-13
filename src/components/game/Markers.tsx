@@ -45,7 +45,7 @@ function markers(): MarkerDef[] {
   }
   for (const s of SOURCES) {
     const t = FIRE_TAG[s.kind];
-    out.push({ key: `src-${s.kind}`, x: s.x, z: s.z, y: s.y + 2.2, icon: t.icon, text: t.text, bg: t.bg, ink: t.ink, beacon: "#ff7a1a", kind: s.kind });
+    out.push({ key: `src-${s.kind}-${s.x}`, x: s.x, z: s.z, y: s.y + 2.2, icon: t.icon, text: t.text, bg: t.bg, ink: t.ink, beacon: "#ff7a1a", kind: s.kind });
   }
   return out;
 }
