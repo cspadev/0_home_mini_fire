@@ -185,7 +185,7 @@ export function Hud() {
           </div>
 
           {/* held item + prompt */}
-          <div className="absolute inset-x-0 bottom-28 flex flex-col items-center gap-2 px-4 sm:bottom-8">
+          <div className="absolute inset-x-0 bottom-52 flex flex-col items-center gap-2 px-4 sm:bottom-8">
             {s.fireDistance !== null && (
               <div className="comic-chip bg-cream text-ink tabular-nums">
                 🔥 {s.fireDistance.toFixed(1)} m · {s.inRange ? "In reach" : "Out of reach"}

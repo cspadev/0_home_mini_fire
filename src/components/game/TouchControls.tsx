@@ -4,6 +4,7 @@ import { initAudio } from "@/game/audio";
 
 export function TouchControls() {
   const [show, setShow] = useState(false);
+  const [playing, setPlaying] = useState(game.phase === "playing");
   const base = useRef<HTMLDivElement>(null);
   const knob = useRef<HTMLDivElement>(null);
   const activeId = useRef<number | null>(null);
@@ -16,7 +17,12 @@ export function TouchControls() {
     return () => window.removeEventListener("touchstart", onTouch);
   }, []);
 
-  if (!show) return null;
+  useEffect(() => {
+    const t = setInterval(() => setPlaying(game.phase === "playing"), 250);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!show || !playing) return null;
 
   const move = (clientX: number, clientY: number) => {
     const el = base.current;
@@ -42,7 +48,7 @@ export function TouchControls() {
   };
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-20 flex items-end justify-between px-5">
+    <div className="pointer-events-none absolute inset-x-0 bottom-4 flex items-end justify-between px-5">
       <div
         ref={base}
         className="pointer-events-auto relative flex h-36 w-36 touch-none items-center justify-center rounded-full border-4 border-ink/60 bg-cream/50"
@@ -58,6 +64,10 @@ export function TouchControls() {
         onPointerUp={reset}
         onPointerCancel={reset}
       >
+        <span className="absolute top-1.5 font-display text-sm text-ink/50">▲</span>
+        <span className="absolute bottom-1.5 font-display text-sm text-ink/50">▼</span>
+        <span className="absolute left-2.5 font-display text-sm text-ink/50">◀</span>
+        <span className="absolute right-2.5 font-display text-sm text-ink/50">▶</span>
         <div ref={knob} className="h-16 w-16 rounded-full border-4 border-ink bg-sun" />
       </div>
       <div className="pointer-events-auto flex touch-none flex-col gap-3">
