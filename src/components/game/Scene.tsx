@@ -620,12 +620,139 @@ function Particles() {
 
 const CLIP_FADE = 0.15;
 
+// Student look: curly brown hair, navy striped polo, goggles, pencil, backpack.
+const STUDENT_LOOK = { hair: "#5a3420", hairDark: "#3d2214", polo: "#1f2a4d", coral: "#ef7f6b", stripe: "#f6efe2", pants: "#2c2c34", shoe: "#c8333a" };
+
+function repaintColormap(src: THREE.Texture) {
+  const img = src.image as CanvasImageSource & { width: number; height: number };
+  const c = document.createElement("canvas");
+  c.width = img.width;
+  c.height = img.height;
+  const g = c.getContext("2d")!;
+  g.drawImage(img, 0, 0);
+  const cell = img.width / 16;
+  const fill = (col: number, row: number, color: string) => {
+    g.fillStyle = color;
+    g.fillRect(col * cell, row * cell, cell, cell);
+  };
+  // shirt + sleeves (column 5, rows 8-11): navy polo with coral/white stripes
+  for (let r = 8; r <= 11; r++) {
+    fill(5, r, STUDENT_LOOK.polo);
+    g.fillStyle = STUDENT_LOOK.coral;
+    g.fillRect(5 * cell, r * cell + cell * 0.3, cell, cell * 0.18);
+    g.fillStyle = STUDENT_LOOK.stripe;
+    g.fillRect(5 * cell, r * cell + cell * 0.62, cell, cell * 0.12);
+  }
+  fill(11, 12, STUDENT_LOOK.hair); fill(11, 13, STUDENT_LOOK.hair); fill(11, 14, STUDENT_LOOK.hairDark); fill(11, 15, STUDENT_LOOK.hair);
+  fill(1, 13, STUDENT_LOOK.pants); fill(1, 14, STUDENT_LOOK.pants);
+  fill(15, 9, STUDENT_LOOK.shoe); fill(15, 10, STUDENT_LOOK.stripe);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.flipY = src.flipY;
+  t.magFilter = src.magFilter;
+  t.minFilter = src.minFilter;
+  return t;
+}
+
+function dressStudent(wrap: THREE.Group) {
+  const body = wrap.children[0];
+  let head: THREE.Object3D | undefined;
+  let torso: THREE.Object3D | undefined;
+  let tex: THREE.Texture | undefined;
+  body.traverse((o) => {
+    if (o.name === "head" && !(o as THREE.Mesh).isMesh) head = o;
+    if (o.name === "torso" && !(o as THREE.Mesh).isMesh) torso = o;
+    const m = o as THREE.Mesh;
+    if (m.isMesh) {
+      const mat = (m.material as THREE.MeshStandardMaterial).clone();
+      if (mat.map) {
+        tex ??= repaintColormap(mat.map);
+        mat.map = tex;
+      }
+      m.material = mat;
+    }
+  });
+  const std = (color: string, rough = 0.8) => new THREE.MeshStandardMaterial({ color, roughness: rough });
+  const hairMat = std(STUDENT_LOOK.hair, 0.9);
+  const hairDark = std(STUDENT_LOOK.hairDark, 0.9);
+  const add = (parent: THREE.Object3D | undefined, mesh: THREE.Object3D) => {
+    if (!parent) return;
+    body.add(mesh); // place in model space, then re-parent to the bone keeping world pose
+    wrap.updateMatrixWorld(true);
+    parent.attach(mesh);
+    mesh.traverse((o) => (o.castShadow = true));
+  };
+  wrap.updateMatrixWorld(true);
+  // curly hair: a cluster of blobs over the top and back of the head
+  const blob = new THREE.IcosahedronGeometry(1, 1);
+  const curls: [number, number, number, number][] = [];
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2;
+    curls.push([Math.cos(a) * 0.2, 0.7, Math.sin(a) * 0.17 - 0.01, 0.085]);
+  }
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + 0.3;
+    curls.push([Math.cos(a) * 0.1, 0.75, Math.sin(a) * 0.09, 0.09]);
+  }
+  curls.push([0, 0.77, 0, 0.1], [-0.17, 0.6, -0.15, 0.08], [0.17, 0.6, -0.15, 0.08], [0, 0.6, -0.2, 0.09], [-0.21, 0.62, 0.02, 0.07], [0.21, 0.62, 0.02, 0.07]);
+  const hair = new THREE.Group();
+  curls.forEach(([x, y, z, r], i) => {
+    const m = new THREE.Mesh(blob, i % 3 ? hairMat : hairDark);
+    m.position.set(x, y, z);
+    m.scale.setScalar(r * 0.82);
+    hair.add(m);
+  });
+  add(head, hair);
+  // goggles pushed up on the forehead
+  const gog = new THREE.Group();
+  const strap = new THREE.Mesh(new THREE.TorusGeometry(0.235, 0.018, 6, 24), std("#2b2b2b"));
+  strap.rotation.x = Math.PI / 2 + 0.25;
+  gog.add(strap);
+  const lensMat = new THREE.MeshStandardMaterial({ color: "#a9d8ee", roughness: 0.1, metalness: 0.3 });
+  const rimMat = std("#8a8f96", 0.4);
+  [-0.085, 0.085].forEach((x) => {
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 16), rimMat);
+    rim.rotation.x = Math.PI / 2 - 0.25;
+    rim.position.set(x, 0.0, 0.23);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.058, 16), lensMat);
+    lens.position.set(x, 0.007, 0.257);
+    lens.rotation.x = -0.25;
+    gog.add(rim, lens);
+  });
+  gog.position.set(0, 0.665, 0);
+  add(head, gog);
+  // pencil tucked behind the right ear
+  const pencil = new THREE.Group();
+  const wood = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.2, 6), std("#f2b632"));
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.04, 6), std("#e8c9a0"));
+  tip.position.y = -0.12;
+  tip.rotation.x = Math.PI;
+  pencil.add(wood, tip);
+  pencil.position.set(-0.245, 0.56, -0.02);
+  pencil.rotation.set(0.9, 0, 0.2);
+  add(head, pencil);
+  // stuffed backpack
+  const pack = new THREE.Group();
+  const bag = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.3, 0.16), std("#22262f"));
+  const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.13, 0.06), std("#2f3542"));
+  pocket.position.set(0, -0.06, -0.1);
+  const patch = new THREE.Mesh(new THREE.CircleGeometry(0.04, 16), std("#ffcc33"));
+  patch.position.set(0.08, 0.07, -0.081);
+  patch.rotation.y = Math.PI;
+  const dino = new THREE.Mesh(new THREE.IcosahedronGeometry(0.05, 1), std("#4caf6a"));
+  dino.position.set(-0.19, -0.08, -0.06);
+  pack.add(bag, pocket, patch, dino);
+  pack.position.set(0, 0.2, -0.2);
+  add(torso, pack);
+  return wrap;
+}
+
 function Player() {
   const outer = useRef<THREE.Group>(null);
   const inner = useRef<THREE.Group>(null);
   const toolRefs = useRef<Record<Tool, THREE.Group | null>>({ water: null, co2: null, blanket: null });
   const { scene, animations } = useGLTF(studentModel.url);
-  const model = useMemo(() => fitClone(scene, [2, 1.45, 2], true), [scene]);
+  const model = useMemo(() => dressStudent(fitClone(scene, [2, 1.45, 2], true)), [scene]);
   const { actions } = useAnimations(animations, inner);
   const current = useRef<string>("");
 
