@@ -655,7 +655,7 @@ function repaintColormap(src: THREE.Texture) {
 }
 
 function dressStudent(wrap: THREE.Group) {
-  const body = wrap.children[0];
+  const body = wrap.children[0]!;
   let head: THREE.Object3D | undefined;
   let torso: THREE.Object3D | undefined;
   let tex: THREE.Texture | undefined;
