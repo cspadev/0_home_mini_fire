@@ -8,6 +8,7 @@ import { game } from "@/game/runtime";
 import { sfx } from "@/game/audio";
 import { fireRadius, nearestFire } from "@/game/sim";
 import { signTexture } from "./textures";
+import { t } from "@/i18n";
 
 interface MarkerDef {
   key: string;
@@ -23,21 +24,21 @@ interface MarkerDef {
 }
 
 const FIRE_TAG: Record<FireKind, { icon: string; text: string; bg: string; ink: string }> = {
-  paper: { icon: "🗑️", text: "PAPER FIRE", bg: "#fff3c4", ink: "#8a5a00" },
-  electric: { icon: "⚡", text: "ELECTRICAL", bg: "#fff36b", ink: "#2b2235" },
-  grease: { icon: "🍳", text: "OIL FIRE", bg: "#ffd2b8", ink: "#b0211d" },
+  paper: { icon: "🗑️", text: t.markers.fires.paper, bg: "#fff3c4", ink: "#8a5a00" },
+  electric: { icon: "⚡", text: t.markers.fires.electric, bg: "#fff36b", ink: "#2b2235" },
+  grease: { icon: "🍳", text: t.markers.fires.grease, bg: "#ffd2b8", ink: "#b0211d" },
 };
 
 const STATION_TAG = {
-  water: { icon: "🪣", text: "WATER", bg: "#d6efff", ink: "#1d5fa8", beacon: "#3fa7ff" },
-  co2: { icon: "🧯", text: "CO₂", bg: "#ffffff", ink: "#2b2235", beacon: "#e9e9ff" },
-  blanket: { icon: "🟥", text: "BLANKET", bg: "#ffe0d6", ink: "#b0211d", beacon: "#ff5a4f" },
+  water: { icon: "🪣", text: t.markers.stations.water, bg: "#d6efff", ink: "#1d5fa8", beacon: "#3fa7ff" },
+  co2: { icon: "🧯", text: t.markers.stations.co2, bg: "#ffffff", ink: "#2b2235", beacon: "#e9e9ff" },
+  blanket: { icon: "🟥", text: t.markers.stations.blanket, bg: "#ffe0d6", ink: "#b0211d", beacon: "#ff5a4f" },
 } as const;
 
 function markers(): MarkerDef[] {
   const out: MarkerDef[] = [
-    { key: "alarm", x: ALARM.x, z: ALARM.z + 0.45, y: 2.6, icon: "🚨", text: "ALARM", bg: "#e2332f", ink: "#ffffff", beacon: "#ff2a2a", kind: "alarm" },
-    { key: "door", x: DOOR.x, z: DOOR.z - 0.3, y: 3.0, icon: "🚪", text: "EXIT", bg: "#1f9d55", ink: "#ffffff", beacon: "#3cff8a", kind: "door" },
+    { key: "alarm", x: ALARM.x, z: ALARM.z + 0.45, y: 2.6, icon: "🚨", text: t.markers.alarm, bg: "#e2332f", ink: "#ffffff", beacon: "#ff2a2a", kind: "alarm" },
+    { key: "door", x: DOOR.x, z: DOOR.z - 0.3, y: 3.0, icon: "🚪", text: t.markers.exit, bg: "#1f9d55", ink: "#ffffff", beacon: "#3cff8a", kind: "door" },
   ];
   for (const s of STATIONS) {
     const t = STATION_TAG[s.tool];

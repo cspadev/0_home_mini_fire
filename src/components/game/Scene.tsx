@@ -4,28 +4,6 @@ import { Environment, Lightformer, useAnimations, useGLTF } from "@react-three/d
 import * as THREE from "three";
 import { SkeletonUtils } from "three-stdlib";
 
-import studentModel from "@/assets/models/student.glb.asset.json";
-import deskModel from "@/assets/models/desk.glb.asset.json";
-import chairModel from "@/assets/models/chairDesk.glb.asset.json";
-import screenModel from "@/assets/models/computerScreen.glb.asset.json";
-import stoveModel from "@/assets/models/kitchenStove.glb.asset.json";
-import cabinetModel from "@/assets/models/kitchenCabinet.glb.asset.json";
-import sinkModel from "@/assets/models/kitchenSink.glb.asset.json";
-import trashModel from "@/assets/models/trashcan.glb.asset.json";
-import bookcaseModel from "@/assets/models/bookcaseOpen.glb.asset.json";
-import plantModel from "@/assets/models/pottedPlant.glb.asset.json";
-import tableModel from "@/assets/models/table.glb.asset.json";
-import benchModel from "@/assets/models/bench.glb.asset.json";
-import kitchenFridgeModel from "@/assets/models/kitchenFridge.glb.asset.json";
-import kitchenMicrowaveModel from "@/assets/models/kitchenMicrowave.glb.asset.json";
-import laptopModel from "@/assets/models/laptop.glb.asset.json";
-import stoolBarModel from "@/assets/models/stoolBar.glb.asset.json";
-import cardboardBoxClosedModel from "@/assets/models/cardboardBoxClosed.glb.asset.json";
-import speakerModel from "@/assets/models/speaker.glb.asset.json";
-import kitchenStoveElectricModel from "@/assets/models/kitchenStoveElectric.glb.asset.json";
-import kitchenBarModel from "@/assets/models/kitchenBar.glb.asset.json";
-import televisionModernModel from "@/assets/models/televisionModern.glb.asset.json";
-import firefighterModel from "@/assets/models/firefighter.glb.asset.json";
 
 import { currentRoom, DOOR, FURNITURE, ROOM, STATIONS, type ModelKey, type Tool } from "@/game/layout";
 import { fireRadius, forwardOf, RESCUE_TIME, step, TUNING, type GameEvent } from "@/game/sim";
@@ -33,33 +11,35 @@ import { burst, emit, MAX_PARTICLES, particles, stepParticles } from "@/game/fx"
 import { edges, emitUi, game, getRoomId, readInput, shake, subscribeRoom } from "@/game/runtime";
 import { setFireLevel, sfx } from "@/game/audio";
 import { Markers } from "./Markers";
+import { modelUrl } from "@/game/models";
+import { t } from "@/i18n";
 import { courtTexture, floorTexture, glowTexture, scorchTexture, signTexture, wallTexture } from "./textures";
 
 const MODEL_URL: Record<ModelKey, string> = {
-  desk: deskModel.url,
-  chairDesk: chairModel.url,
-  computerScreen: screenModel.url,
-  kitchenStove: stoveModel.url,
-  kitchenCabinet: cabinetModel.url,
-  kitchenSink: sinkModel.url,
-  trashcan: trashModel.url,
-  bookcaseOpen: bookcaseModel.url,
-  pottedPlant: plantModel.url,
-  table: tableModel.url,
-  bench: benchModel.url,
-  kitchenFridge: kitchenFridgeModel.url,
-  kitchenMicrowave: kitchenMicrowaveModel.url,
-  laptop: laptopModel.url,
-  stoolBar: stoolBarModel.url,
-  cardboardBoxClosed: cardboardBoxClosedModel.url,
-  speaker: speakerModel.url,
-  kitchenStoveElectric: kitchenStoveElectricModel.url,
-  kitchenBar: kitchenBarModel.url,
-  televisionModern: televisionModernModel.url,
+  desk: modelUrl("desk"),
+  chairDesk: modelUrl("chairDesk"),
+  computerScreen: modelUrl("computerScreen"),
+  kitchenStove: modelUrl("kitchenStove"),
+  kitchenCabinet: modelUrl("kitchenCabinet"),
+  kitchenSink: modelUrl("kitchenSink"),
+  trashcan: modelUrl("trashcan"),
+  bookcaseOpen: modelUrl("bookcaseOpen"),
+  pottedPlant: modelUrl("pottedPlant"),
+  table: modelUrl("table"),
+  bench: modelUrl("bench"),
+  kitchenFridge: modelUrl("kitchenFridge"),
+  kitchenMicrowave: modelUrl("kitchenMicrowave"),
+  laptop: modelUrl("laptop"),
+  stoolBar: modelUrl("stoolBar"),
+  cardboardBoxClosed: modelUrl("cardboardBoxClosed"),
+  speaker: modelUrl("speaker"),
+  kitchenStoveElectric: modelUrl("kitchenStoveElectric"),
+  kitchenBar: modelUrl("kitchenBar"),
+  televisionModern: modelUrl("televisionModern"),
 };
 Object.values(MODEL_URL).forEach((u) => useGLTF.preload(u));
-useGLTF.preload(studentModel.url);
-useGLTF.preload(firefighterModel.url);
+useGLTF.preload(modelUrl("student"));
+useGLTF.preload(modelUrl("firefighter"));
 
 // ---------------------------------------------------------------- models
 
@@ -173,9 +153,9 @@ function ToolMesh({ tool }: { tool: Tool }) {
 }
 
 const STATION_STYLE: Record<Tool, { color: string; sign: string; sub: string; bg: string; ink: string }> = {
-  water: { color: "#3fa7ff", sign: "WATER", sub: "paper · wood", bg: "#d6efff", ink: "#1d5fa8" },
-  co2: { color: "#f4f4fa", sign: "CO₂", sub: "electrical", bg: "#ececf2", ink: "#2b2235" },
-  blanket: { color: "#e2332f", sign: "BLANKET", sub: "cooking oil", bg: "#ffe0d6", ink: "#b0211d" },
+  water: { color: "#3fa7ff", sign: t.signs.stations.water.sign, sub: t.signs.stations.water.sub, bg: "#d6efff", ink: "#1d5fa8" },
+  co2: { color: "#f4f4fa", sign: t.signs.stations.co2.sign, sub: t.signs.stations.co2.sub, bg: "#ececf2", ink: "#2b2235" },
+  blanket: { color: "#e2332f", sign: t.signs.stations.blanket.sign, sub: t.signs.stations.blanket.sub, bg: "#ffe0d6", ink: "#b0211d" },
 };
 
 function Stations() {
@@ -256,16 +236,16 @@ function Room() {
     t.repeat.set(6, 1);
     return t;
   }, [th]);
-  const exitSign = useMemo(() => signTexture([{ text: "EXIT →", color: "#ffffff", size: 120 }], "#1f9d55", "#0f4d2a"), []);
-  const blockedSign = useMemo(() => signTexture([{ text: "BLOCKED!", color: "#ffffff", size: 110 }], "#d62f2f", "#5e1010"), []);
+  const exitSign = useMemo(() => signTexture([{ text: t.signs.exit, color: "#ffffff", size: 120 }], "#1f9d55", "#0f4d2a"), []);
+  const blockedSign = useMemo(() => signTexture([{ text: t.signs.blocked, color: "#ffffff", size: 110 }], "#d62f2f", "#5e1010"), []);
   const board = useMemo(
     () =>
       signTexture(
         [
-          { text: "WHICH TOOL?", color: "#ffe9a8", size: 64 },
-          { text: "paper → water", color: "#ffffff", size: 44 },
-          { text: "plug → CO₂", color: "#ffffff", size: 44 },
-          { text: "pan → blanket", color: "#ffffff", size: 44 },
+          { text: t.signs.board[0]!, color: "#ffe9a8", size: 64 },
+          { text: t.signs.board[1]!, color: "#ffffff", size: 44 },
+          { text: t.signs.board[2]!, color: "#ffffff", size: 44 },
+          { text: t.signs.board[3]!, color: "#ffffff", size: 44 },
         ],
         "#2f5a4a",
         "#8a5a34",
@@ -278,9 +258,9 @@ function Room() {
     () =>
       signTexture(
         [
-          { text: "P.A.S.S.", color: "#d62f2f", size: 84 },
-          { text: "Pull · Aim", color: "#2b2235", size: 44 },
-          { text: "Squeeze · Sweep", color: "#2b2235", size: 44 },
+          { text: t.signs.pass[0]!, color: "#d62f2f", size: 84 },
+          { text: t.signs.pass[1]!, color: "#2b2235", size: 44 },
+          { text: t.signs.pass[2]!, color: "#2b2235", size: 44 },
         ],
         "#fff6e0",
       ),
@@ -751,7 +731,7 @@ function Player() {
   const outer = useRef<THREE.Group>(null);
   const inner = useRef<THREE.Group>(null);
   const toolRefs = useRef<Record<Tool, THREE.Group | null>>({ water: null, co2: null, blanket: null });
-  const { scene, animations } = useGLTF(studentModel.url);
+  const { scene, animations } = useGLTF(modelUrl("student"));
   const model = useMemo(() => dressStudent(fitClone(scene, [2, 1.45, 2], true)), [scene]);
   const { actions } = useAnimations(animations, inner);
   const current = useRef<string>("");
@@ -816,7 +796,7 @@ function Player() {
 
 const CREW = 3;
 function Firefighters() {
-  const { scene, animations } = useGLTF(firefighterModel.url);
+  const { scene, animations } = useGLTF(modelUrl("firefighter"));
   const models = useMemo(
     () =>
       Array.from({ length: CREW }, () => {

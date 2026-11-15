@@ -128,6 +128,9 @@ export function signTexture(lines: { text: string; color: string; size: number }
     let y = h / 2 - total / 2;
     for (const l of lines) {
       g.font = `${l.size}px "Luckiest Guy", "Arial Black", system-ui, sans-serif`;
+      // shrink lines that would not fit the sign (translations can be longer)
+      const fit = Math.min(1, (w - 48) / Math.max(1, g.measureText(l.text).width));
+      if (fit < 1) g.font = `${Math.floor(l.size * fit)}px "Luckiest Guy", "Arial Black", system-ui, sans-serif`;
       g.fillStyle = l.color;
       y += l.size * 0.575;
       g.fillText(l.text, w / 2, y + l.size * 0.08);

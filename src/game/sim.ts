@@ -11,46 +11,10 @@ import {
   type Source,
   type Tool,
 } from "./layout";
+import { GROW, MATCH, POINTS, RESCUE_TIME, TOOL_USES, TUNING } from "./config";
+import { t } from "@/i18n";
 
-export const TUNING = {
-  WALK: 5.6,
-  RUN: 7.2,
-  BACK_FACTOR: 0.55,
-  TURN: 2.9,
-  ACCEL: 12,
-  GRAVITY: 24,
-  JUMP_V: 8.4,
-  PLAYER_R: 0.35,
-  REACH: 3.4,
-  OUT_TIME_CUT: 5, // seconds shaved off the firefighter countdown per fire put out
-  STATION_REACH: 1.7,
-  ROUND_TIME: 30, // firefighter arrival countdown, starts when the alarm is raised
-  MAX_FIRES: 16,
-  SPREAD_AT: 0.85,
-  SPREAD_EVERY: 7,
-  DOOR_BLOCK_R: 2.3,
-  DOOR_BLOCK_I: 0.6,
-  SMOKE_LIMIT: 9,
-  INVULN: 2,
-  LIVES: 3,
-  LATE_FIRE_AT: 10,
-  MAX_INTENSITY: 1.6,
-};
-
-export const TOOL_USES: Record<Tool, number> = { water: 2, co2: 6, blanket: 2 };
-export const GROW: Record<FireKind, number> = { paper: 0.075, electric: 0.06, grease: 0.09 };
-
-export const POINTS = {
-  OUT: 100,
-  OUT_SOURCE_BONUS: 50,
-  KNOCKDOWN: 20,
-  WRONG: -50,
-  SAVED: 300,
-  PER_SECOND_LEFT: 10,
-  ESCAPED: 150,
-  ALARM: 50,
-  RESCUED: 200,
-};
+export { TUNING, TOOL_USES, GROW, POINTS, RESCUE_TIME, MATCH } from "./config";
 
 export type Outcome = "right" | "weak" | "wrong";
 
@@ -120,11 +84,18 @@ export interface GameInput {
   action: boolean; // edge
 }
 
-export type Phase = "intro" | "playing" | "roundEnd" | "gameOver";
+export type Phase = "intro" | "playing" | "roundEnd" | "gameOver" | "finished";
 
 export interface GameState {
   phase: Phase;
+  /** difficulty level: goes up after each round without a lost life */
   round: number;
+  /** rounds played in this game (MATCH.rounds in total) */
+  played: number;
+  /** rounds won in this game (result kind in MATCH.winKinds) */
+  won: number;
+  /** result kind of each played round */
+  history: RoundResult["kind"][];
   score: number;
   lives: number;
   timeLeft: number;
@@ -187,21 +158,8 @@ export function outcomeOf(tool: Tool, kind: FireKind, intensity: number): Outcom
   return "wrong"; // water or co2
 }
 
-const COPY: Record<string, { word: string; tip: string }> = {
-  "water:paper:right": { word: "SPLOOSH!", tip: "Water is perfect for paper, wood and cloth fires." },
-  "blanket:paper:right": { word: "SMOTHERED!", tip: "Small paper fire? A blanket cuts off its oxygen." },
-  "blanket:paper:weak": { word: "TOO BIG!", tip: "Too big to smother — soak it with water." },
-  "co2:paper:weak": { word: "PFFT…", tip: "CO₂ knocks it down, but water soaks paper fires better." },
-  "co2:electric:right": { word: "FSSSHH!", tip: "CO₂ is safe on electrical fires — it doesn't conduct." },
-  "blanket:electric:weak": { word: "STILL LIVE!", tip: "Smothering doesn't cut the power. Use the CO₂ extinguisher." },
-  "water:electric:wrong": { word: "BZZZAP!", tip: "Water conducts electricity! Never throw it on electrical fires." },
-  "blanket:grease:right": { word: "SMOTHERED!", tip: "A fire blanket starves a pan fire of oxygen." },
-  "water:grease:wrong": { word: "KA-WHOOOSH!", tip: "Water on burning oil turns to steam and blasts a fireball!" },
-  "co2:grease:wrong": { word: "SPLAT!", tip: "The blast sprayed burning oil around. Smother pan fires with a blanket." },
-};
-
 export function copyFor(tool: Tool, kind: FireKind, outcome: Outcome) {
-  return COPY[`${tool}:${kind}:${outcome}`] ?? { word: "HMM", tip: "" };
+  return t.outcomes[`${tool}:${kind}:${outcome}`] ?? { word: t.fallbackWord, tip: "" };
 }
 
 // ---------- lifecycle ----------
@@ -226,6 +184,9 @@ export function createGame(seed = Date.now() % 100000): GameState {
   return {
     phase: "intro",
     round: 1,
+    played: 0,
+    won: 0,
+    history: [],
     score: 0,
     lives: TUNING.LIVES,
     timeLeft: TUNING.ROUND_TIME,
@@ -287,7 +248,31 @@ export function startGame(s: GameState) {
   s.score = 0;
   s.lives = TUNING.LIVES;
   s.round = 1;
+  s.played = 0;
+  s.won = 0;
+  s.history = [];
   startRound(s);
+}
+
+/** Start button on the room picker: a fresh game, or the next round of a game in progress. */
+export function startOrResume(s: GameState) {
+  if (s.played > 0 && s.played < MATCH.rounds && s.lives > 0) startRound(s);
+  else startGame(s);
+}
+
+export function isLastRoundPlayed(s: GameState): boolean {
+  return s.played >= MATCH.rounds;
+}
+
+/** Ends the game early (e.g. failed revive quiz): unplayed rounds count as lost. */
+export function finishGame(s: GameState) {
+  s.phase = "finished";
+  s.fires = [];
+}
+
+/** successRate for the host game: share of won rounds, 0–1. */
+export function successRate(s: GameState): number {
+  return s.won / MATCH.rounds;
 }
 
 /** After passing the safety quiz: full lives back, score kept, retry the round. */
@@ -308,9 +293,24 @@ export function toMenu(s: GameState) {
   s.fires = [];
 }
 
+/** Back to the room picker with a brand-new game (nothing played yet). */
+export function newGame(s: GameState) {
+  toMenu(s);
+  s.score = 0;
+  s.lives = TUNING.LIVES;
+  s.round = 1;
+  s.played = 0;
+  s.won = 0;
+  s.history = [];
+  s.result = null;
+}
+
 export function continueGame(s: GameState) {
   if (s.phase === "gameOver") startGame(s);
-  else if (s.phase === "roundEnd") startRound(s);
+  else if (s.phase === "roundEnd") {
+    if (isLastRoundPlayed(s)) finishGame(s);
+    else startRound(s);
+  }
 }
 
 function endRound(s: GameState, r: Omit<RoundResult, "points"> & { points?: number }) {
@@ -319,7 +319,13 @@ function endRound(s: GameState, r: Omit<RoundResult, "points"> & { points?: numb
   if (result.lifeLost) s.lives -= 1;
   s.best = Math.max(s.best, s.score);
   s.result = result;
-  if (s.lives <= 0) {
+  s.played += 1;
+  s.history.push(result.kind);
+  if (MATCH.winKinds.includes(result.kind)) s.won += 1;
+  if (isLastRoundPlayed(s)) {
+    // last round: show its result, then the evaluation (no revive quiz needed)
+    s.phase = "roundEnd";
+  } else if (s.lives <= 0) {
     s.phase = "gameOver";
   } else {
     s.phase = "roundEnd";
@@ -435,7 +441,7 @@ function doAction(s: GameState) {
   }
   const st = nearestStation(s);
   if (st && !s.alarm) {
-    s.events.push({ type: "hint", text: "Pull the fire alarm first! It's the red box by the exit." });
+    s.events.push({ type: "hint", text: t.hints.alarmFirst });
     return;
   }
   if (st) {
@@ -447,7 +453,7 @@ function doAction(s: GameState) {
   }
   s.events.push({
     type: "hint",
-    text: s.held ? "Get closer to a fire to use it!" : "Grab equipment from a glowing station first.",
+    text: s.held ? t.hints.getCloser : t.hints.grabFirst,
   });
 }
 
@@ -561,8 +567,7 @@ function checkHurt(s: GameState) {
         s.lives = 1; // endRound removes the final life
         endRound(s, {
           kind: "burned",
-          title: "Ouch! Too close!",
-          text: "Never walk through flames — go around them.",
+          ...t.results.burned,
           lifeLost: true,
         });
       }
@@ -601,8 +606,8 @@ export function step(s: GameState, input: GameInput, rawDt: number) {
     const bonus = Math.floor(s.timeLeft) * POINTS.PER_SECOND_LEFT;
     endRound(s, {
       kind: "saved",
-      title: "Room saved!",
-      text: `Every fire is out. Time bonus +${bonus}.`,
+      title: t.results.saved.title,
+      text: t.results.saved.text(bonus),
       points: POINTS.SAVED + bonus,
       lifeLost: false,
     });
@@ -611,8 +616,7 @@ export function step(s: GameState, input: GameInput, rawDt: number) {
   if (!s.doorBlocked && dist2(p.x, p.z, DOOR.x, DOOR.z) < 1.3 * 1.3) {
     endRound(s, {
       kind: "escaped",
-      title: "You got out!",
-      text: "Getting out safely is always a smart call. Close the door behind you!",
+      ...t.results.escaped,
       points: POINTS.ESCAPED,
       lifeLost: false,
     });
@@ -621,8 +625,7 @@ export function step(s: GameState, input: GameInput, rawDt: number) {
   if (s.smoke >= TUNING.SMOKE_LIMIT) {
     endRound(s, {
       kind: "smoke",
-      title: "Too much smoke!",
-      text: "The fire got away. When it's spreading fast, leave early.",
+      ...t.results.smoke,
       lifeLost: true,
     });
     return;
@@ -634,7 +637,6 @@ export function step(s: GameState, input: GameInput, rawDt: number) {
 }
 
 /** Firefighters charge in from the door and hose every fire down, then the round ends. */
-export const RESCUE_TIME = 3.5;
 function stepRescue(s: GameState, dt: number) {
   s.rescueT += dt;
   s.player.speed = 0;
@@ -648,8 +650,7 @@ function stepRescue(s: GameState, dt: number) {
     s.fires = [];
     endRound(s, {
       kind: "rescued",
-      title: "Firefighters are here!",
-      text: "You raised the alarm and held the fire back until help arrived.",
+      ...t.results.rescued,
       points: POINTS.RESCUED,
       lifeLost: false,
     });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { edges, game, touch } from "@/game/runtime";
 import { initAudio } from "@/game/audio";
+import { t } from "@/i18n";
 
 export function TouchControls() {
   const [show, setShow] = useState(false);
@@ -79,7 +80,7 @@ export function TouchControls() {
             if (game.phase === "playing") edges.action = true;
           }}
         >
-          USE
+          {t.hud.use}
         </button>
       </div>
     </div>

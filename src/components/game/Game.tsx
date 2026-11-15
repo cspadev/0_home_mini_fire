@@ -6,12 +6,22 @@ import { Hud } from "./Hud";
 import { TouchControls } from "./TouchControls";
 import { edges, game, keys } from "@/game/runtime";
 import { initAudio } from "@/game/audio";
-import { step, startGame, type GameInput } from "@/game/sim";
+import { newGame, step, startGame, type GameInput } from "@/game/sim";
 
 const BLOCK = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"]);
 
-export default function Game() {
+export interface GameProps {
+  /** Set when running inside the host game: called once from the evaluation screen. */
+  onFinish?: ((successRate: number, payload: unknown) => void) | undefined;
+}
+
+export default function Game({ onFinish }: GameProps) {
   const wrap = useRef<HTMLDivElement>(null);
+
+  // Every (re)start from the host game begins a brand-new game on the room picker.
+  useEffect(() => {
+    newGame(game);
+  }, []);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -60,7 +70,7 @@ export default function Game() {
       >
         <Scene onReady={onReady} />
       </Canvas>
-      <Hud />
+      <Hud onFinish={onFinish} />
       <TouchControls />
     </div>
   );

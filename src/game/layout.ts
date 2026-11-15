@@ -57,6 +57,7 @@ export interface Source {
   x: number;
   z: number;
   y: number;
+  /** internal description only (not shown to players) */
   label: string;
 }
 
@@ -75,9 +76,8 @@ export type RoomId = "kitchen" | "computer" | "gym" | "cafeteria" | "chemistry";
 
 export interface RoomDef {
   id: RoomId;
-  name: string;
+  /** room name and description are in src/i18n (rooms.<id>) */
   icon: string;
-  blurb: string;
   theme: RoomTheme;
   furniture: Furniture[];
   sources: Source[];
@@ -86,9 +86,7 @@ export interface RoomDef {
 export const ROOMS: RoomDef[] = [
   {
     id: "kitchen",
-    name: "Home-Ec Kitchen",
     icon: "🍳",
-    blurb: "Frying pans, a computer and an overflowing bin.",
     theme: { floorA: "#efe6d2", floorB: "#5fb3a8", floorStyle: "tile", wall: "#f6dcb8", wainscot: "#e0704f", trim: "#c95a3d", sky: "#f3d9b5" },
     furniture: [
       f("kitchenCabinet", -6.2, -7.45, 0, CAB),
@@ -118,9 +116,7 @@ export const ROOMS: RoomDef[] = [
   },
   {
     id: "computer",
-    name: "Computer Lab",
     icon: "💻",
-    blurb: "Rows of humming computers and a pile of printer paper.",
     theme: { floorA: "#5d6f8f", floorB: "#6c7fa0", floorStyle: "carpet", wall: "#dde8f2", wainscot: "#3c78b4", trim: "#2c5c8c", sky: "#cfe0ee" },
     furniture: [
       sink,
@@ -141,9 +137,7 @@ export const ROOMS: RoomDef[] = [
   },
   {
     id: "gym",
-    name: "Gym",
     icon: "🏀",
-    blurb: "A big open court, a sound system and the snack stand.",
     theme: { floorA: "#e2a865", floorB: "#d39552", floorStyle: "wood", wall: "#f1ece0", wainscot: "#2f6fb0", trim: "#1f4f80", sky: "#efe6d0", hoops: true },
     furniture: [
       sink,
@@ -167,9 +161,7 @@ export const ROOMS: RoomDef[] = [
   },
   {
     id: "cafeteria",
-    name: "Cafeteria",
     icon: "🍔",
-    blurb: "Lunch rush! A deep fryer, a microwave and the big bin.",
     theme: { floorA: "#fff3c8", floorB: "#e9573f", floorStyle: "tile", wall: "#fff0d8", wainscot: "#f2a531", trim: "#c97f12", sky: "#fde6c0" },
     furniture: [
       f("kitchenFridge", -8.8, -7.4, 0, [1.2, 2.1, 0.9]),
@@ -191,9 +183,7 @@ export const ROOMS: RoomDef[] = [
   },
   {
     id: "chemistry",
-    name: "Chemistry Lab",
     icon: "🧪",
-    blurb: "Lab benches, an oil bath on a hot plate and paper towels.",
     theme: { floorA: "#f4f6f0", floorB: "#7fbf8f", floorStyle: "tile", wall: "#e6f2e8", wainscot: "#3f9a6a", trim: "#2c7550", sky: "#dceede" },
     furniture: [
       f("kitchenCabinet", -1.2, -7.45, 0, CAB),
@@ -246,23 +236,12 @@ export interface Station {
   tool: Tool;
   x: number;
   z: number;
-  label: string;
 }
 
 export const STATIONS: Station[] = [
-  { tool: "water", x: 0, z: -6.5, label: "Water bucket" },
-  { tool: "co2", x: -3.4, z: 7.1, label: "CO₂ extinguisher" },
-  { tool: "blanket", x: 9.2, z: 4, label: "Fire blanket" },
+  { tool: "water", x: 0, z: -6.5 },
+  { tool: "co2", x: -3.4, z: 7.1 },
+  { tool: "blanket", x: 9.2, z: 4 },
 ];
 
-export const TOOL_LABEL: Record<Tool, string> = {
-  water: "Water bucket",
-  co2: "CO₂ extinguisher",
-  blanket: "Fire blanket",
-};
-
-export const FIRE_LABEL: Record<FireKind, string> = {
-  paper: "Paper / wood fire",
-  electric: "Electrical fire",
-  grease: "Cooking-oil fire",
-};
+// Tool and fire names shown to players are in src/i18n (tools, fires).

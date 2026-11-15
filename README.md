@@ -1,4 +1,26 @@
-# Firewise Room Runner
+# Zastav požár! (Firewise Room Runner)
+
+Minihra **0_home_mini_fire** kariérní hry ČSpA. Vývoj probíhá v Lovable (tento repozitář);
+stejný `main` se zrcadlí do `cspadev/0_home_mini_fire`, odkud ho nasazuje Vercel
+(https://stop-fire-minig.vercel.app).
+
+## Vstupy a výstupy (protokol v1)
+
+- **Vstup (INIT):** zatím žádné parametry; `level` ani `payload` hra nepoužívá (jakýkoli payload přijme a ignoruje).
+- **Výstup (FINISH):** po 3 kolech tlačítko „Pokračovat“ na obrazovce vyhodnocení pošle
+  `successRate` = vyhraná kola / 3. Vyhrané kolo = všechny ohně uhašené, nebo hráč vydržel do příjezdu hasičů
+  (nastavení `MATCH` v `src/game/config.ts`). Payload: `{ won, rounds, score, history }`.
+- **Samostatně** (mimo hlavní hru) se místo „Pokračovat“ ukáže „Hrát znovu“.
+
+## Kde co je
+
+- Texty: `src/i18n/cs.ts` (výchozí čeština), `src/i18n/en.ts` (`?lang=en`).
+- Herní parametry: `src/game/config.ts`.
+- 3D modely: `public/models` (CC0 Kenney, viz `CREDITS.md`).
+- Komunikace s hlavní hrou: `src/protokol` (kopie z `zimmerp-vse/minihry`, needitovat zde).
+
+## Původní zadání pro Lovable
+
 
 Create a 3D browser minigame for high-school students called “Stop the fire”.
 

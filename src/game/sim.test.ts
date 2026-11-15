@@ -3,7 +3,13 @@ import { ROOMS, setRoom, OBSTACLES, SOURCES, DOOR, ALARM, STATIONS } from "./lay
 import { makeQuiz, quizPassed } from "./quiz";
 import {
   applyTool,
+  continueGame,
   createGame,
+  finishGame,
+  isLastRoundPlayed,
+  MATCH,
+  newGame,
+  successRate,
   forwardOf,
   igniteSource,
   nearestFire,
@@ -254,5 +260,59 @@ describe("rooms", () => {
       for (const st of STATIONS) for (const b of OBSTACLES) expect(Math.abs(st.x - b.x) > b.hw || Math.abs(st.z - b.z) > b.hd).toBe(true);
     }
     setRoom("kitchen");
+  });
+});
+
+describe("game of MATCH.rounds rounds (result for the host game)", () => {
+  // Rounds won by putting out every fire (counted as won), escaped rounds count as not won.
+  const winRound = (s: ReturnType<typeof createGame>) => {
+    s.fires = [];
+    s.pending = [];
+    step(s, idle, 0.016);
+  };
+  const escapeRound = (s: ReturnType<typeof createGame>) => {
+    s.fires = [];
+    s.pending = [];
+    igniteSource(s, src("paper"), 0.3);
+    s.player.x = DOOR.x;
+    s.player.z = DOOR.z;
+    step(s, idle, 0.016);
+  };
+
+  it("ends with the evaluation after the last round and reports won / rounds", () => {
+    const s = createGame(7);
+    startGame(s);
+    winRound(s);
+    expect(s.result?.kind).toBe("saved");
+    continueGame(s);
+    escapeRound(s);
+    expect(s.result?.kind).toBe("escaped");
+    continueGame(s);
+    winRound(s);
+    expect(s.played).toBe(MATCH.rounds);
+    expect(isLastRoundPlayed(s)).toBe(true);
+    expect(s.phase).toBe("roundEnd");
+    continueGame(s);
+    expect(s.phase).toBe("finished");
+    expect(s.history).toEqual(["saved", "escaped", "saved"]);
+    expect(successRate(s)).toBeCloseTo(2 / 3);
+  });
+
+  it("ending the game early counts unplayed rounds as lost", () => {
+    const s = createGame(7);
+    startGame(s);
+    winRound(s);
+    finishGame(s);
+    expect(s.phase).toBe("finished");
+    expect(successRate(s)).toBeCloseTo(1 / 3);
+  });
+
+  it("a new game starts from zero", () => {
+    const s = createGame(7);
+    startGame(s);
+    winRound(s);
+    newGame(s);
+    expect(s.phase).toBe("intro");
+    expect([s.played, s.won, s.score]).toEqual([0, 0, 0]);
   });
 });
